@@ -85,7 +85,7 @@ export function MissionCard({
   }
 
   return (
-    <article className="flex flex-col bg-surface rounded-[var(--radius-card)] border border-line overflow-hidden lift">
+    <article className="flex flex-col bg-surface rounded-card border border-line overflow-hidden lift">
       {/* Reward panel */}
       <div className="m-2 mb-0 rounded-[1.25rem] px-5 pt-4 pb-5 relative" style={{ background: band.soft }}>
         <div className="flex items-start justify-between gap-3">

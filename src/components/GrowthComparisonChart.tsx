@@ -81,7 +81,7 @@ export function GrowthComparisonChart({ history, whatIfGrow }: GrowthComparisonC
         )}
       </div>
 
-      <div className="h-[280px] w-full">
+      <div className="h-70 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid stroke="#ece9e3" vertical={false} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
@@ -43,6 +43,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const [showPennyworthPanel, setShowPennyworthPanel] = useState(false);
 
   const isLoginPage = pathname.endsWith("/login");
+  const mobileNavRef = useRef<HTMLElement>(null);
+
+  // Keep the current page's pill visible in the scrollable mobile nav
+  useEffect(() => {
+    const active = mobileNavRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (active && mobileNavRef.current) {
+      mobileNavRef.current.scrollTo({ left: active.offsetLeft - 12, behavior: "smooth" });
+    }
+  }, [pathname, sessionChecked]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -221,7 +230,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             <StudentAvatar studentId={student.id} studentName={student.name} size="sm" />
           </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 -mt-1 [scrollbar-width:none]" aria-label="Main">
+        <nav
+          ref={mobileNavRef}
+          className="flex gap-1 overflow-x-auto px-3 pb-3 -mt-1 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]"
+          aria-label="Main"
+        >
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (

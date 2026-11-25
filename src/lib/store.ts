@@ -813,6 +813,68 @@ export function setTourDismissed(dismissed: boolean) {
   tourDismissed = dismissed;
 }
 
+/* ------------------------------------------------------------------
+   Teacher tools
+------------------------------------------------------------------- */
+
+/** Add (positive) or remove (negative) tokens from one bucket. Balances never go below 0. */
+export function adjustBalance(
+  studentId: string,
+  bucket: TokenBucket,
+  delta: number,
+  reason = "Teacher adjustment",
+): Student | null {
+  touch();
+  const student = getStudent(studentId);
+  if (!student || !Number.isFinite(delta) || delta === 0) return null;
+  const key = bucket === "spend" ? "spendTokens" : bucket === "save" ? "saveTokens" : "growTokens";
+  const before = student[key];
+  const after = Math.max(0, before + Math.round(delta));
+  if (after === before) return student;
+  student[key] = after;
+  snapshotBalances(student);
+  logActivity({
+    studentId,
+    kind: "adjusted",
+    title: reason.trim() || "Teacher adjustment",
+    spend: bucket === "spend" ? after - before : 0,
+    save: bucket === "save" ? after - before : 0,
+    grow: bucket === "grow" ? after - before : 0,
+  });
+  return student;
+}
+
+export function setStudentPin(studentId: string, pin: string): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student || !/^\d{4}$/.test(pin)) return false;
+  student.pin = pin;
+  return true;
+}
+
+/** Remove a student and everything tied to them (requests, assignments, pending rewards, activity) */
+export function removeStudent(studentId: string): boolean {
+  touch();
+  const index = students.findIndex((s) => s.id === studentId);
+  if (index === -1) return false;
+  missions.forEach((m) => {
+    if (m.assignedStudentId === studentId) {
+      m.assignedStudentId = undefined;
+      m.status = "AVAILABLE";
+    }
+    if (m.requestedBy.includes(studentId)) {
+      m.requestedBy = m.requestedBy.filter((id) => id !== studentId);
+      m.requestCount = m.requestedBy.length;
+      m.currentReward = calculateReward(m.baseReward, m.requestCount);
+      if (!m.assignedStudentId) m.status = m.requestCount > 0 ? "REQUESTED" : "AVAILABLE";
+    }
+  });
+  pendingRewards = pendingRewards.filter((p) => p.studentId !== studentId);
+  activity = activity.filter((a) => a.studentId !== studentId);
+  students.splice(index, 1);
+  return true;
+}
+
 // Supply & Demand calculation
 export function calculateReward(baseReward: number, requestCount: number): number {
   if (requestCount === 0) return baseReward;

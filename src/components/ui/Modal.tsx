@@ -30,7 +30,7 @@ export function Modal({ isOpen, onClose, children, title, description, illustrat
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div
         className="absolute inset-0 bg-ink/40 backdrop-blur-[2px] animate-[fade-up_0.2s_ease-out_both]"
         onClick={onClose}
@@ -41,7 +41,7 @@ export function Modal({ isOpen, onClose, children, title, description, illustrat
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full sm:max-w-md bg-surface rounded-t-[2rem] sm:rounded-[2rem] shadow-lift max-h-[92vh] overflow-y-auto animate-pop-in"
+        className="relative w-full sm:max-w-md bg-surface rounded-t-4xl sm:rounded-4xl shadow-lift max-h-[92vh] overflow-y-auto animate-pop-in"
       >
         <button
           type="button"

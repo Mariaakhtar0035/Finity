@@ -8,6 +8,35 @@ import type { AskNarratorContext } from "@/lib/gemini";
 
 const MAX_QUESTION_LENGTH = 200;
 
+/** Reveals a reply a few words at a time, like it's being typed */
+function TypedText({ text, onProgress, onDone }: { text: string; onProgress: () => void; onDone: () => void }) {
+  const words = text.split(/(\s+)/);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setCount(words.length);
+      return;
+    }
+    const timer = setInterval(() => setCount((c) => Math.min(c + 2, words.length)), 45);
+    return () => clearInterval(timer);
+  }, [words.length]);
+
+  useEffect(() => {
+    onProgress();
+    if (count >= words.length) onDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count]);
+
+  return (
+    <>
+      {words.slice(0, count).join("")}
+      {count < words.length && <span className="inline-block w-1.5 h-4 ml-0.5 -mb-0.5 bg-ink/40 rounded-sm animate-pulse" aria-hidden />}
+    </>
+  );
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -44,6 +73,8 @@ export function MrsPennyworthPanel({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [avatarState, setAvatarState] = useState<MrsPennyworthState>("idle");
+  /** The reply currently being "typed" out word by word */
+  const [typingId, setTypingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -87,12 +118,10 @@ export function MrsPennyworthPanel({
       const data = await response.json();
       const answer = data.answer ?? "I'm not sure right now. Ask your teacher or try again!";
 
+      const id = `assistant-${Date.now()}`;
       setAvatarState("celebration");
-      setMessages((prev) => [
-        ...prev,
-        { id: `assistant-${Date.now()}`, role: "assistant", content: answer, timestamp: new Date() },
-      ]);
-      setTimeout(() => setAvatarState("idle"), 1200);
+      setTypingId(id);
+      setMessages((prev) => [...prev, { id, role: "assistant", content: answer, timestamp: new Date() }]);
     } catch {
       setAvatarState("idle");
       setMessages((prev) => [
@@ -155,7 +184,18 @@ export function MrsPennyworthPanel({
                   : "bg-ink text-white rounded-2xl rounded-br-md"
               }`}
             >
-              {msg.content}
+              {msg.id === typingId ? (
+                <TypedText
+                  text={msg.content}
+                  onProgress={() => messagesEndRef.current?.scrollIntoView({ block: "end" })}
+                  onDone={() => {
+                    setTypingId(null);
+                    setAvatarState("idle");
+                  }}
+                />
+              ) : (
+                msg.content
+              )}
             </p>
           </div>
         ))}
@@ -202,13 +242,13 @@ export function MrsPennyworthPanel({
             placeholder="Ask about tokens, saving, spending…"
             rows={1}
             maxLength={MAX_QUESTION_LENGTH}
-            disabled={loading}
+            disabled={loading || !!typingId}
             className="flex-1 resize-none bg-transparent py-1.5 text-[15px] placeholder:text-faint focus:outline-none max-h-32 disabled:opacity-60"
             aria-label="Your message"
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
+            disabled={loading || !!typingId || !input.trim()}
             className="w-9 h-9 shrink-0 rounded-full bg-ink text-white flex items-center justify-center disabled:opacity-25 transition-opacity"
             aria-label="Send message"
           >

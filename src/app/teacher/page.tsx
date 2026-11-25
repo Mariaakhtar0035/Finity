@@ -14,6 +14,7 @@ import { Loading } from "@/components/ui/Loading";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Segmented, Toast } from "@/components/ui/Feedback";
 import { EmptyState } from "@/components/EmptyState";
+import { ManageStudentModal } from "@/components/ManageStudentModal";
 import { rewardTint } from "@/lib/palette";
 import { RewardIcon } from "@/components/RewardIcon";
 import { MissionCard } from "@/components/MissionCard";
@@ -74,6 +75,7 @@ export default function TeacherDashboard() {
   const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
   const [showStudentFormModal, setShowStudentFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TeacherTab>("missions");
+  const [managingId, setManagingId] = useState<string | null>(null);
 
   // Demo sign-in guard
   useEffect(() => {
@@ -516,12 +518,15 @@ export default function TeacherDashboard() {
                       <Card key={student.id} className="p-6">
                         <div className="flex items-center gap-3">
                           <StudentAvatar studentId={student.id} studentName={student.name} size="md" />
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <h3 className="font-display text-2xl tracking-tight leading-tight">{student.name}</h3>
                             <p className="text-sm text-muted num">
-                              {total} tokens · {completedCount} mission{completedCount === 1 ? "" : "s"} done
+                              {total} tokens · {completedCount} done
                             </p>
                           </div>
+                          <Button variant="secondary" size="sm" onClick={() => setManagingId(student.id)}>
+                            Manage
+                          </Button>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mt-5">
                           {(["spend", "save", "grow"] as const).map((t) => (
@@ -623,6 +628,12 @@ export default function TeacherDashboard() {
           onAssign={handleAssignMission}
         />
       )}
+
+      <ManageStudentModal
+        student={managingId ? students.find((s) => s.id === managingId) ?? null : null}
+        onClose={() => setManagingId(null)}
+        onDone={(msg) => triggerSuccess(msg)}
+      />
 
       <Toast message={message} />
 

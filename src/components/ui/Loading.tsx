@@ -18,15 +18,3 @@ export function Loading({ size = "md", text }: LoadingProps) {
     </div>
   );
 }
-
-export function SkeletonCard() {
-  return (
-    <div className="bg-surface rounded-[var(--radius-card)] border border-line p-6 animate-pulse">
-      <div className="h-24 bg-paper rounded-2xl mb-5" />
-      <div className="h-5 bg-paper rounded-full w-2/3 mb-3" />
-      <div className="h-4 bg-paper rounded-full w-full mb-2" />
-      <div className="h-4 bg-paper rounded-full w-4/5 mb-6" />
-      <div className="h-11 bg-paper rounded-full w-full" />
-    </div>
-  );
-}

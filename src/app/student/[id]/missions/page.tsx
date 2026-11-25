@@ -88,7 +88,7 @@ export default function ActivityPage() {
       {pendingRewards.length > 0 && (
         <Link
           href={`/student/${studentId}`}
-          className="flex items-center justify-between gap-4 rounded-[var(--radius-card)] bg-butter-soft border border-[#efe3ae] px-6 py-5 hover:brightness-[0.98] transition"
+          className="flex items-center justify-between gap-4 rounded-card bg-butter-soft border border-[#efe3ae] px-6 py-5 hover:brightness-[0.98] transition"
         >
           <div className="flex items-center gap-3">
             <Coin type="spend" size={32} />

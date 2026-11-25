@@ -63,7 +63,7 @@ export interface ActivityEntry {
   id: string;
   studentId: string;
   week: number;
-  kind: "earned" | "spent" | "moved" | "interest";
+  kind: "earned" | "spent" | "moved" | "interest" | "adjusted";
   title: string;
   /** Change to each balance (positive = in, negative = out) */
   spend: number;

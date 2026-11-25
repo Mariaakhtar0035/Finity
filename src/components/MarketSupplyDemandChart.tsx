@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/Card";
 import type { Mission } from "@/types";
 
 const MAX_MISSIONS = 8;
-const TITLE_LENGTH = 14;
+const TITLE_LENGTH = 17;
+const ROW_HEIGHT = 44;
 const AXIS_STYLE = { fontFamily: "var(--font-jost), sans-serif", fontSize: 12, fill: "#9a9892" };
 
 interface MarketSupplyDemandChartProps {
@@ -50,12 +51,34 @@ export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartPro
       {chartData.length === 0 ? (
         <p className="text-muted text-center py-16">Request missions to see supply & demand in action.</p>
       ) : (
-        <div className="h-[280px] w-full">
+        <div className="w-full" style={{ height: chartData.length * ROW_HEIGHT + 32 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barCategoryGap="22%" barGap={4}>
-              <CartesianGrid stroke="#ece9e3" vertical={false} />
-              <XAxis dataKey="name" tick={AXIS_STYLE} axisLine={false} tickLine={false} interval={0} dy={8} />
-              <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+              barCategoryGap="22%"
+              barGap={2}
+            >
+              <CartesianGrid stroke="#ece9e3" horizontal={false} />
+              <XAxis type="number" tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={128}
+                tick={(props) => {
+                  // Render our own label so recharts doesn't wrap names onto two lines
+                  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+                  return (
+                    <text x={x - 8} y={y} dy={4} textAnchor="end" style={{ ...AXIS_STYLE, fill: "#2b2b2b" }}>
+                      {payload.value}
+                    </text>
+                  );
+                }}
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+              />
               <Tooltip
                 cursor={{ fill: "rgba(20,20,20,0.03)" }}
                 content={({ active, payload }) => {
@@ -77,8 +100,8 @@ export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartPro
                   );
                 }}
               />
-              <Bar dataKey="baseReward" name="Full price" fill="#e9e7e1" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-              <Bar dataKey="currentReward" name="Current price" fill="#e2a55c" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="baseReward" name="Full price" fill="#e9e7e1" radius={[0, 6, 6, 0]} isAnimationActive={false} />
+              <Bar dataKey="currentReward" name="Current price" fill="#e2a55c" radius={[0, 6, 6, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

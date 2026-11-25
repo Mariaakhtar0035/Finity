@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDownLeft, ArrowLeftRight, ShoppingBag, Sprout, type LucideIcon } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ShoppingBag, SlidersHorizontal, Sprout, type LucideIcon } from "lucide-react";
 import type { ActivityEntry } from "@/types";
 
 const KIND: Record<ActivityEntry["kind"], { icon: LucideIcon; bg: string }> = {
@@ -7,6 +7,7 @@ const KIND: Record<ActivityEntry["kind"], { icon: LucideIcon; bg: string }> = {
   spent: { icon: ShoppingBag, bg: "bg-pink-soft" },
   moved: { icon: ArrowLeftRight, bg: "bg-periwinkle-soft" },
   interest: { icon: Sprout, bg: "bg-mint-soft" },
+  adjusted: { icon: SlidersHorizontal, bg: "bg-lavender-soft" },
 };
 
 function signed(n: number) {

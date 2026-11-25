@@ -18,7 +18,7 @@ export function Card({
 }: CardProps) {
   return (
     <Tag
-      className={`bg-surface rounded-[var(--radius-card)] border border-line ${
+      className={`bg-surface rounded-card border border-line ${
         interactive || onClick ? "lift cursor-pointer" : ""
       } ${className}`}
       onClick={onClick}

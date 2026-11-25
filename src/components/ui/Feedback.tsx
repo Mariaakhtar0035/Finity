@@ -10,7 +10,7 @@ import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 export function Toast({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="fixed bottom-6 inset-x-0 z-[90] flex justify-center px-4 pointer-events-none">
+    <div className="fixed bottom-6 inset-x-0 z-90 flex justify-center px-4 pointer-events-none">
       <div
         role="status"
         className="pointer-events-auto inline-flex items-center gap-3 bg-ink text-white rounded-full pl-2 pr-5 py-2 shadow-lift animate-fade-up max-w-full"
@@ -91,7 +91,7 @@ export function Confetti({ show, onDone }: { show: boolean; onDone?: () => void 
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] pointer-events-none overflow-hidden" aria-hidden>
+    <div className="fixed inset-0 z-110 pointer-events-none overflow-hidden" aria-hidden>
       {pieces.map((p) => (
         <span
           key={p.id}

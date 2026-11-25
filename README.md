@@ -10,21 +10,37 @@ Through a classroom economy, students experience real-world money concepts like 
 
 Finity turns financial literacy from a one-time lesson into a daily experience, helping students build valuable financial skills that reduce future stress and support smarter money decisions for life.
 
+![Finity landing page](docs/screenshots/landing.png)
+
 ## Key Features
 
-- Mission marketplace with supply-and-demand pricing
-- Three-token system: Spend, Save, Grow (with 2% weekly compound growth on Grow)
-- Savings goals and growth visualization
-- Reward shop
-- Teacher dashboard to assign missions and approve completions
-- Mrs. Pennyworth: AI chatbot and explanations powered by Gemini 2.5 Flash
+- **Mission marketplace** with supply-and-demand pricing: the more classmates want a mission, the less it pays
+- **Three-token system:** Spend, Save and Grow, with 2% weekly compound interest on Grow
+- **Real weekly economy:** teachers start each new week, interest is paid out, and every student's money history and activity feed update
+- **Savings goals**, growth projections and a "what if I grew everything?" chart
+- **Reward shop** with classroom perks
+- **Teacher dashboard** to create missions and rewards, assign and approve work, adjust balances and reset PINs
+- **Class-code sign-in:** students enter a code, find their name and use a PIN, with no student emails needed
+- **Mrs. Pennyworth**, an AI money coach powered by Gemini 2.5 Flash, with built-in fallback answers
+
+## Screenshots
+
+| Student home | Mission marketplace |
+| --- | --- |
+| ![Student dashboard](docs/screenshots/student-dashboard.png) | ![Mission marketplace](docs/screenshots/marketplace.png) |
+| **Reward shop** | **Teacher dashboard** |
+| ![Reward shop](docs/screenshots/reward-shop.png) | ![Teacher dashboard](docs/screenshots/teacher-dashboard.png) |
+| **Mrs. Pennyworth** | **Joining a class (mobile)** |
+| ![Mrs. Pennyworth chat](docs/screenshots/mrs-pennyworth.png) | <img src="docs/screenshots/mobile-join.png" alt="Joining a class on mobile" width="280"> |
 
 ## Tech Stack
 
-- Next.js
+- Next.js 16 (App Router)
 - TypeScript
-- Tailwind CSS
+- Tailwind CSS v4
+- Recharts
 - Gemini 2.5 Flash
+- Vitest
 
 ## Installation & Setup
 
@@ -57,6 +73,12 @@ npm run dev
 ```
 
 Open http://localhost:3000. Students join with class code `FIN-482`, then pick their name. Every PIN (students and teacher) is `1234`.
+
+**Run the Tests**
+
+```bash
+npm test
+```
 
 ## How the demo works
 

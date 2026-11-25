@@ -129,7 +129,7 @@ export default function HomePage() {
 
       {/* ========== STATS ========== */}
       <section className="px-6 pb-20 md:pb-28">
-        <div className="max-w-6xl mx-auto bg-surface rounded-[2rem] border border-line grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line">
+        <div className="max-w-6xl mx-auto bg-surface rounded-4xl border border-line grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line">
           {STATS.map((s) => (
             <div key={s.value} className="p-8 md:p-10">
               <p className="display text-6xl md:text-7xl text-ink">{s.value}</p>
@@ -151,7 +151,7 @@ export default function HomePage() {
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             {TOKENS.map((t) => (
-              <div key={t.type} className={`rounded-[2rem] p-8 ${TOKEN_META[t.type].soft}`}>
+              <div key={t.type} className={`rounded-4xl p-8 ${TOKEN_META[t.type].soft}`}>
                 <Coin type={t.type} size={72} />
                 <h3 className="font-display text-3xl tracking-tight mt-8">{t.title}</h3>
                 <p className="text-ink-soft mt-3 leading-relaxed">{t.body}</p>
@@ -164,7 +164,7 @@ export default function HomePage() {
       {/* ========== FEATURES ========== */}
       <section id="features" className="px-6 pb-20 md:pb-28 scroll-mt-24">
         <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1.1fr] gap-12 md:gap-20 items-center">
-          <div className="relative bg-butter-soft rounded-[2rem] aspect-[4/3.4] flex items-end justify-center overflow-hidden order-last md:order-first">
+          <div className="relative bg-butter-soft rounded-4xl aspect-[4/3.4] flex items-end justify-center overflow-hidden order-last md:order-first">
             <JarDoodle className="absolute left-[12%] bottom-[14%] w-[30%] bob" />
             <CoinStackDoodle className="absolute right-[12%] bottom-[14%] w-[34%] bob" style={{ animationDelay: "1s" }} />
             <StarDoodle className="absolute top-[14%] left-[44%] w-[12%] bob" style={{ animationDelay: "0.5s" }} />
@@ -189,7 +189,7 @@ export default function HomePage() {
 
       {/* ========== MRS. PENNYWORTH ========== */}
       <section id="pennyworth" className="px-3 sm:px-6 pb-20 md:pb-28 scroll-mt-24">
-        <div className="max-w-6xl mx-auto rounded-[2rem] overflow-hidden bg-[linear-gradient(120deg,#3f4160_0%,#62668f_55%,#9097c8_100%)] text-white">
+        <div className="max-w-6xl mx-auto rounded-4xl overflow-hidden bg-[linear-gradient(120deg,#3f4160_0%,#62668f_55%,#9097c8_100%)] text-white">
           <div className="grid md:grid-cols-2 gap-10 p-8 md:p-16 items-center">
             <div>
               <PennyworthPortrait className="w-24 h-24 md:w-28 md:h-28 rounded-full border-[3px] border-ink mb-8" />
@@ -200,7 +200,7 @@ export default function HomePage() {
                 kid-friendly language and offers options, not orders.
               </p>
             </div>
-            <div className="bg-surface text-ink rounded-[1.75rem] p-5 shadow-lift max-w-md md:ml-auto w-full">
+            <div className="bg-surface text-ink rounded-card p-5 shadow-lift max-w-md md:ml-auto w-full">
               <div className="flex items-center gap-3 pb-4 border-b border-line">
                 <MrsPennyworthAvatar size="md" className="w-11! h-11!" />
                 <div>
@@ -241,7 +241,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
             <Link
               href="/join"
-              className="group bg-surface rounded-[var(--radius-card)] border border-line p-8 md:p-10 flex flex-col lift"
+              className="group bg-surface rounded-card border border-line p-8 md:p-10 flex flex-col lift"
             >
               <span className="w-14 h-14 rounded-full bg-peach-soft border-2 border-ink flex items-center justify-center">
                 <Backpack className="w-6 h-6" strokeWidth={1.75} />
@@ -256,7 +256,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/teacher/login"
-              className="group bg-surface rounded-[var(--radius-card)] border border-line p-8 md:p-10 flex flex-col lift"
+              className="group bg-surface rounded-card border border-line p-8 md:p-10 flex flex-col lift"
             >
               <span className="w-14 h-14 rounded-full bg-periwinkle-soft border-2 border-ink flex items-center justify-center">
                 <GraduationCap className="w-6 h-6" strokeWidth={1.75} />

@@ -14,7 +14,7 @@ export function AuthShell({ children, backHref = "/" }: { children: React.ReactN
         </Link>
       </header>
       <main className="flex-1 flex items-center justify-center px-4 pb-16">
-        <div className="w-full max-w-sm bg-surface rounded-[2rem] border border-line shadow-soft px-6 sm:px-8 py-10">
+        <div className="w-full max-w-sm bg-surface rounded-4xl border border-line shadow-soft px-6 sm:px-8 py-10">
           {children}
         </div>
       </main>

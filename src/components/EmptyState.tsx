@@ -19,7 +19,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`bg-surface rounded-[var(--radius-card)] border border-dashed border-line-strong px-6 py-14 text-center ${className}`}
+      className={`bg-surface rounded-card border border-dashed border-line-strong px-6 py-14 text-center ${className}`}
     >
       <div className="flex justify-center mb-5">
         {illustration ?? <JarDoodle className="w-20 h-auto" />}

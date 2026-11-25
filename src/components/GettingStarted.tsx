@@ -94,7 +94,7 @@ export function GettingStarted() {
 
   return (
     <div
-      className={`fixed z-[45] bottom-4 left-4 lg:bottom-6 flex flex-col items-start gap-3 max-w-[calc(100vw-2rem)] ${
+      className={`fixed z-45 bottom-4 left-4 lg:bottom-6 flex flex-col items-start gap-3 max-w-[calc(100vw-2rem)] ${
         inStudentApp ? "lg:left-[calc(16rem+1.5rem)]" : "lg:left-6"
       }`}
     >
@@ -102,7 +102,7 @@ export function GettingStarted() {
         <div
           role="dialog"
           aria-label="Getting started"
-          className="w-[340px] max-w-full bg-surface rounded-[1.75rem] border border-line shadow-lift p-5 animate-fade-up"
+          className="w-[340px] max-w-full bg-surface rounded-card border border-line shadow-lift p-5 animate-fade-up"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -176,6 +176,7 @@ export function GettingStarted() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-label={allDone ? "Checklist complete" : `Getting started, ${done} of ${STEPS.length} done`}
         className="inline-flex items-center gap-2.5 h-11 pl-2 pr-4 rounded-full bg-ink text-white shadow-lift hover:bg-ink-soft transition-colors"
       >
         {allDone ? (
@@ -185,7 +186,7 @@ export function GettingStarted() {
         ) : (
           <ProgressRing done={done} total={STEPS.length} />
         )}
-        <span className="text-sm font-medium">{allDone ? "All done" : "Getting started"}</span>
+        <span className="text-sm font-medium hidden sm:inline">{allDone ? "All done" : "Getting started"}</span>
         {!allDone && <span className="text-sm text-white/60 num">{done}/{STEPS.length}</span>}
       </button>
     </div>

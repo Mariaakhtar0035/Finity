@@ -71,7 +71,7 @@ export default function StudentDashboard() {
 
       {/* Pending claim banner */}
       {pendingRewards.length > 0 && (
-        <section className="relative overflow-hidden rounded-[var(--radius-card)] bg-butter-soft border border-[#efe3ae] p-6 md:p-8">
+        <section className="relative overflow-hidden rounded-card bg-butter-soft border border-[#efe3ae] p-6 md:p-8">
           <CoinStackDoodle className="absolute -right-4 -bottom-6 w-32 md:w-40 opacity-90 hidden sm:block" />
           <div className="relative sm:pr-36">
             <h2 className="font-display text-2xl md:text-3xl tracking-tight">You have tokens to claim</h2>
