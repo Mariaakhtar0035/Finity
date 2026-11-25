@@ -18,6 +18,7 @@ import {
   claimPendingReward,
   getBalanceHistory,
   getCurrentWeek,
+  getSaveGoal,
 } from "@/lib/store";
 import { TransferTokensCard } from "@/components/TransferTokensCard";
 import { GrowthComparisonChart } from "@/components/GrowthComparisonChart";
@@ -46,6 +47,7 @@ export default function StudentDashboard() {
   if (!student) return null;
 
   const completedMissions = missions.filter((m) => m.status === "COMPLETED");
+  const saveGoal = getSaveGoal(student);
   const totalTokens = student.spendTokens + student.saveTokens + student.growTokens;
   const history = getBalanceHistory(studentId);
   const whatIfGrow = computeWhatIfGrow(history);
@@ -147,7 +149,11 @@ export default function StudentDashboard() {
               <Coin type={a.type} size={40} />
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{TOKEN_META[a.type].label}</p>
-                <p className="text-sm text-muted">{TOKEN_META[a.type].description}</p>
+                <p className="text-sm text-muted truncate">
+                  {a.type === "save" && saveGoal.kind === "reward"
+                    ? `Saving for ${saveGoal.reward.title} · ${Math.min(100, Math.round((student.saveTokens / saveGoal.target) * 100))}%`
+                    : TOKEN_META[a.type].description}
+                </p>
               </div>
               <span className="font-display text-2xl num">{a.amount}</span>
               <ChevronRight className="w-5 h-5 text-faint group-hover:text-ink transition-colors" />

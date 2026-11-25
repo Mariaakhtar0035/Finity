@@ -1,18 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { Check, Target } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin } from "@/components/ui/Coin";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { JarDoodle } from "@/components/ui/Doodles";
+import { BagDoodle } from "@/components/ui/Doodles";
+import { ProgressJar } from "@/components/ProgressJar";
+import { RewardIcon } from "@/components/RewardIcon";
+import { SuccessSparkle } from "@/components/SuccessSparkle";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
-import { getStudent, updateStudent } from "@/lib/store";
+import {
+  buyWithSavings,
+  getRewards,
+  getSaveGoal,
+  getStudent,
+  getWeeklySavePace,
+  setSaveGoalReward,
+  updateStudent,
+} from "@/lib/store";
+import { rewardTint } from "@/lib/palette";
 import { useStore } from "@/lib/useStore";
-
-const DEFAULT_SAVE_GOAL = 200;
+import type { Reward } from "@/types";
 
 const TIPS = [
   { title: "Start small", body: "Even a few tokens each time adds up faster than you'd think." },
@@ -24,23 +37,36 @@ export default function SaveTokensPage() {
   const params = useParams();
   const studentId = params.id as string;
   useStore();
-  const [isEditingGoal, setIsEditingGoal] = useState(false);
-  const [editValue, setEditValue] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [customValue, setCustomValue] = useState("");
+  const [bought, setBought] = useState<Reward | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
 
   const student = getStudent(studentId);
   if (!student) return null;
 
-  const saveGoal = student.saveGoal ?? DEFAULT_SAVE_GOAL;
-  const progress = Math.min(100, Math.round((student.saveTokens / saveGoal) * 100));
-  const remaining = Math.max(0, saveGoal - student.saveTokens);
-  const editNum = parseInt(editValue, 10);
-  const editValid = !isNaN(editNum) && editNum >= 1 && editNum <= 9999;
+  const goal = getSaveGoal(student);
+  const saved = student.saveTokens;
+  const progress = Math.min(1, saved / Math.max(goal.target, 1));
+  const remaining = Math.max(0, goal.target - saved);
+  const reached = remaining === 0;
+  const pace = getWeeklySavePace(student);
+  const weeksLeft = pace > 0 ? Math.ceil(remaining / pace) : null;
 
-  const handleSaveGoal = () => {
-    if (!editValid) return;
-    updateStudent(studentId, { saveGoal: editNum });
-    setIsEditingGoal(false);
-    setEditValue("");
+  const options = getRewards()
+    .filter((r) => !r.soldOut && !student.purchasedRewards.includes(r.id))
+    .sort((a, b) => a.cost - b.cost);
+
+  const customNum = parseInt(customValue, 10);
+  const customValid = !isNaN(customNum) && customNum >= 1 && customNum <= 9999;
+
+  const handleBuy = () => {
+    if (goal.kind !== "reward") return;
+    const result = buyWithSavings(studentId, goal.reward.id);
+    if (result) {
+      setBought(result.reward);
+      setCelebrate(true);
+    }
   };
 
   return (
@@ -48,86 +74,92 @@ export default function SaveTokensPage() {
       <PageHeader
         eyebrow="Save"
         title="Saving for something big"
-        description="Save tokens are set aside for a goal you choose. Watch the jar fill up."
+        description="Pick a reward to save for, then watch your jar fill up week by week."
       />
 
+      {/* Goal */}
       <Card className="overflow-hidden">
-        <div className="grid md:grid-cols-[1fr_auto]">
-          <div className="p-6 md:p-8">
-            <div className="flex items-center gap-3">
-              <Coin type="save" size={40} />
-              <div>
-                <p className="text-sm text-muted">Save balance</p>
-                <p className="display text-5xl num">{student.saveTokens}</p>
+        <div className="grid md:grid-cols-[240px_1fr]">
+          <div className="flex items-end justify-center bg-periwinkle-soft pt-8 pb-4 md:py-8">
+            <ProgressJar progress={progress} className="w-36 h-auto" />
+          </div>
+
+          <div className="p-6 md:p-8 flex flex-col">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm text-muted">Saving for</p>
+                {goal.kind === "reward" ? (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span
+                      className="w-12 h-12 rounded-full border-2 border-ink flex items-center justify-center shrink-0"
+                      style={{ background: rewardTint(goal.reward.id) }}
+                    >
+                      <RewardIcon icon={goal.reward.icon} className="w-5 h-5" />
+                    </span>
+                    <h2 className="font-display text-3xl tracking-tight leading-tight">{goal.reward.title}</h2>
+                  </div>
+                ) : (
+                  <h2 className="font-display text-3xl tracking-tight mt-1 num">{goal.target} tokens</h2>
+                )}
               </div>
+              <Button variant="secondary" size="sm" onClick={() => setPickerOpen(true)} className="shrink-0">
+                <Target className="w-4 h-4" /> Change goal
+              </Button>
             </div>
 
             <div className="mt-8">
               <div className="flex items-baseline justify-between gap-4 mb-3">
-                {isEditingGoal ? (
-                  <form
-                    className="flex flex-wrap items-center gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSaveGoal();
-                    }}
-                  >
-                    <label htmlFor="save-goal-input" className="text-sm text-muted">
-                      New goal
-                    </label>
-                    <input
-                      id="save-goal-input"
-                      type="number"
-                      min={1}
-                      max={9999}
-                      autoFocus
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      className="input w-28! py-2! num"
-                      aria-invalid={editValue !== "" && !editValid}
-                    />
-                    <Button type="submit" size="sm" disabled={!editValid}>
-                      Save
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setIsEditingGoal(false)}>
-                      Cancel
-                    </Button>
-                  </form>
-                ) : (
-                  <p className="text-ink-soft">
-                    Goal: <span className="font-medium text-ink num">{saveGoal}</span> tokens
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditValue(String(saveGoal));
-                        setIsEditingGoal(true);
-                      }}
-                      className="ml-2 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Edit
-                    </button>
-                  </p>
-                )}
-                <span className="font-display text-2xl num shrink-0">{progress}%</span>
+                <p className="flex items-center gap-2 text-ink-soft">
+                  <Coin type="save" size={22} />
+                  <span>
+                    <span className="font-medium text-ink num">{saved}</span>
+                    <span className="num"> of {goal.target}</span> Save tokens
+                  </span>
+                </p>
+                <span className="font-display text-2xl num">{Math.round(progress * 100)}%</span>
               </div>
-
               <div
-                className="h-4 w-full rounded-full bg-periwinkle-soft overflow-hidden border border-[#d9def8]"
+                className="h-3 w-full rounded-full bg-periwinkle-soft overflow-hidden"
                 role="progressbar"
-                aria-valuenow={progress}
+                aria-valuenow={Math.round(progress * 100)}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="Save goal progress"
+                aria-label="Savings goal progress"
               >
-                <div className="h-full rounded-full bg-periwinkle-deep bar-grow" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-periwinkle-deep bar-grow" style={{ width: `${progress * 100}%` }} />
               </div>
-              <p className="text-sm text-muted mt-3">
-                {remaining === 0 ? "You reached your goal. Amazing work!" : `${remaining} tokens to go`}
-              </p>
             </div>
-          </div>
-          <div className="hidden md:flex items-end justify-center bg-periwinkle-soft px-12 pt-8">
-            <JarDoodle className="w-36 h-auto" />
+
+            <div className="mt-auto pt-6">
+              {reached ? (
+                goal.kind === "reward" ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between rounded-2xl bg-mint-soft p-4">
+                    <p className="font-medium">You&apos;ve saved enough. Nice patience!</p>
+                    <Button onClick={handleBuy}>Buy with savings</Button>
+                  </div>
+                ) : (
+                  <p className="rounded-2xl bg-mint-soft p-4 font-medium">You reached your goal. Pick a reward to save for next!</p>
+                )
+              ) : (
+                <p className="text-[15px] text-ink-soft">
+                  <span className="font-medium text-ink num">{remaining}</span> to go
+                  {weeksLeft !== null ? (
+                    <>
+                      {" "}· about <span className="font-medium text-ink num">{weeksLeft}</span> week{weeksLeft === 1 ? "" : "s"} at
+                      your recent pace
+                    </>
+                  ) : (
+                    <>
+                      {" "}·{" "}
+                      <Link href={`/student/${studentId}`} className="underline underline-offset-4 decoration-line-strong hover:decoration-ink">
+                        move some tokens into Save
+                      </Link>{" "}
+                      to get going
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -151,6 +183,95 @@ export default function SaveTokensPage() {
           </p>
         </div>
       </Card>
+
+      {/* Goal picker */}
+      <Modal isOpen={pickerOpen} onClose={() => setPickerOpen(false)} title="What are you saving for?">
+        <ul className="space-y-2 max-h-[340px] overflow-y-auto -mx-1 px-1">
+          {options.map((r) => {
+            const active = goal.kind === "reward" && goal.reward.id === r.id;
+            const pct = Math.min(100, Math.round((saved / r.cost) * 100));
+            return (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaveGoalReward(studentId, r.id);
+                    setPickerOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                    active ? "border-ink bg-paper" : "border-line hover:border-ink"
+                  }`}
+                >
+                  <span
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: rewardTint(r.id) }}
+                  >
+                    <RewardIcon icon={r.icon} className="w-5 h-5" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-medium truncate">{r.title}</span>
+                    <span className="block text-xs text-muted num">
+                      {r.cost} tokens · {pct >= 100 ? "you can afford it" : `${pct}% saved`}
+                    </span>
+                  </span>
+                  {active && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <form
+          className="mt-5 pt-5 border-t border-line"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!customValid) return;
+            setSaveGoalReward(studentId, null);
+            updateStudent(studentId, { saveGoal: customNum });
+            setCustomValue("");
+            setPickerOpen(false);
+          }}
+        >
+          <label htmlFor="custom-goal" className="label">
+            Or save toward an amount
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="custom-goal"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={9999}
+              value={customValue}
+              onChange={(e) => setCustomValue(e.target.value)}
+              placeholder="e.g. 150"
+              className="input num"
+            />
+            <Button type="submit" variant="secondary" disabled={!customValid} className="h-auto! shrink-0">
+              Set goal
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <SuccessSparkle show={celebrate} onComplete={() => setCelebrate(false)} />
+      <Modal
+        isOpen={!!bought}
+        onClose={() => setBought(null)}
+        illustration={<BagDoodle className="w-20 h-auto" />}
+        title={bought ? `${bought.title} is yours` : undefined}
+        description="You paid for it with tokens you saved up. That's what saving is for!"
+      >
+        <Button
+          fullWidth
+          onClick={() => {
+            setBought(null);
+            setPickerOpen(true);
+          }}
+        >
+          Pick my next goal
+        </Button>
+      </Modal>
     </div>
   );
 }

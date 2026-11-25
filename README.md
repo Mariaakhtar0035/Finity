@@ -17,9 +17,11 @@ Finity turns financial literacy from a one-time lesson into a daily experience, 
 - **Mission marketplace** with supply-and-demand pricing: the more classmates want a mission, the less it pays
 - **Three-token system:** Spend, Save and Grow, with 2% weekly compound interest on Grow
 - **Real weekly economy:** teachers start each new week, interest is paid out, and every student's money history and activity feed update
-- **Savings goals**, growth projections and a "what if I grew everything?" chart
+- **Save toward a real reward:** students pick a reward, watch a jar fill up, see how many weeks are left at their pace, then buy it with their savings
+- Growth projections and a "what if I grew everything?" chart
 - **Reward shop** with classroom perks
 - **Teacher dashboard** to create missions and rewards, assign and approve work, adjust balances and reset PINs
+- **Class insights:** class balances over time, the class's split vs. the 50/20/30 guideline, and each student's saving habits
 - **Class-code sign-in:** students enter a code, find their name and use a PIN, with no student emails needed
 - **Mrs. Pennyworth**, an AI money coach powered by Gemini 2.5 Flash, with built-in fallback answers
 
@@ -30,6 +32,8 @@ Finity turns financial literacy from a one-time lesson into a daily experience, 
 | ![Student dashboard](docs/screenshots/student-dashboard.png) | ![Mission marketplace](docs/screenshots/marketplace.png) |
 | **Reward shop** | **Teacher dashboard** |
 | ![Reward shop](docs/screenshots/reward-shop.png) | ![Teacher dashboard](docs/screenshots/teacher-dashboard.png) |
+| **Saving toward a reward** | **Class insights** |
+| ![Savings goal](docs/screenshots/savings-goal.png) | ![Class insights](docs/screenshots/class-insights.png) |
 | **Mrs. Pennyworth** | **Joining a class (mobile)** |
 | ![Mrs. Pennyworth chat](docs/screenshots/mrs-pennyworth.png) | <img src="docs/screenshots/mobile-join.png" alt="Joining a class on mobile" width="280"> |
 

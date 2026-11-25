@@ -2,6 +2,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   adjustBalance,
   advanceWeek,
+  buyWithSavings,
+  getClassHistory,
+  getClassInterestPaid,
+  getSaveGoal,
+  getWeeklySavePace,
+  setSaveGoalReward,
+  deleteReward,
   assignMission,
   assignOrReassignMission,
   calculateReward,
@@ -249,5 +256,65 @@ describe("getting-started checklist", () => {
     resetDemo();
     expect(getTour()).toEqual({});
     expect(getCurrentWeek()).toBe(12);
+  });
+});
+
+describe("saving toward a reward", () => {
+  it("uses the chosen reward's price as the target", () => {
+    const reward = getRewards().find((r) => r.id === "reward-3")!;
+    expect(getSaveGoal(getStudent("alex")!)).toMatchObject({ kind: "reward", target: reward.cost });
+  });
+
+  it("falls back to an amount goal when no reward is picked", () => {
+    setSaveGoalReward("alex", null);
+    expect(getSaveGoal(getStudent("alex")!)).toEqual({ kind: "amount", target: 200 });
+  });
+
+  it("won't buy with savings until the student has enough", () => {
+    adjustBalance("alex", "save", -10_000);
+    expect(buyWithSavings("alex", "reward-3")).toBeNull();
+  });
+
+  it("buys with Save tokens, records it and clears the goal", () => {
+    const cost = getRewards().find((r) => r.id === "reward-3")!.cost;
+    adjustBalance("alex", "save", cost);
+    const save0 = getStudent("alex")!.saveTokens;
+    const spend0 = getStudent("alex")!.spendTokens;
+    expect(buyWithSavings("alex", "reward-3")).not.toBeNull();
+    const alex = getStudent("alex")!;
+    expect(alex.saveTokens).toBe(save0 - cost);
+    expect(alex.spendTokens).toBe(spend0);
+    expect(alex.purchasedRewards).toContain("reward-3");
+    expect(alex.saveGoalRewardId).toBeUndefined();
+    expect(getActivity("alex")[0]).toMatchObject({ kind: "spent", save: -cost });
+  });
+
+  it("clears goals that point at a deleted reward", () => {
+    deleteReward("reward-3");
+    expect(getStudent("alex")!.saveGoalRewardId).toBeUndefined();
+  });
+
+  it("estimates weekly pace from recent history, never negative", () => {
+    expect(getWeeklySavePace(getStudent("alex")!)).toBeGreaterThan(0);
+    adjustBalance("alex", "save", -10_000);
+    expect(getWeeklySavePace(getStudent("alex")!)).toBe(0);
+  });
+});
+
+describe("class insights", () => {
+  it("adds every student's balances for each week", () => {
+    const last = getClassHistory().at(-1)!;
+    const students = getStudents();
+    expect(last.week).toBe(getCurrentWeek());
+    expect(last.spendBalance).toBe(students.reduce((s, x) => s + x.spendTokens, 0));
+    expect(last.growBalance).toBe(students.reduce((s, x) => s + x.growTokens, 0));
+  });
+
+  it("totals interest paid across the class", () => {
+    expect(getClassInterestPaid()).toBe(0);
+    const before = getStudents().reduce((s, x) => s + x.growTokens, 0);
+    advanceWeek();
+    const after = getStudents().reduce((s, x) => s + x.growTokens, 0);
+    expect(getClassInterestPaid()).toBe(after - before);
   });
 });

@@ -22,6 +22,8 @@ export interface Student {
   pin: string;
   /** Optional save goal in tokens; default 200 when undefined */
   saveGoal?: number;
+  /** Optional reward the student is saving toward (takes priority over saveGoal) */
+  saveGoalRewardId?: string;
 }
 
 /** Top band color for mission card (board-game sets) */

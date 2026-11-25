@@ -26,9 +26,9 @@ export function getGrowthPercentage(principal: number, future: number): number {
 }
 
 /**
- * Generates plausible 12-26 week history ending at current balances.
- * Used when a student has no balanceHistory. Forward simulation:
- * weekly earnings with spend/grow split, spend shows ups/downs, grow increases steadily.
+ * Generates a plausible weekly history that ends exactly at current balances.
+ * Used when a student has no balanceHistory: Spend wobbles with a couple of
+ * purchase dips, Save rises steadily and Grow accelerates like compounding.
  */
 export function generateHistoryFromCurrent(
   spendTokens: number,
@@ -44,23 +44,19 @@ export function generateHistoryFromCurrent(
       growBalance: 0,
     }));
   }
+  // Each balance climbs smoothly toward today's value. Spend wobbles and dips
+  // around "purchase" weeks; Save rises steadily; Grow accelerates (compounding).
   const entries: BalanceHistoryEntry[] = [];
-  let spendAcc = 0;
-  const weeklySpend = spendTokens / weeks;
-  const weeklySave = saveTokens / weeks;
+  const dipWeeks = new Set([Math.round(weeks * 0.4), Math.round(weeks * 0.75)]);
   for (let w = 1; w <= weeks; w++) {
     const t = w / weeks;
-    // Spend: add weekly amount, but dip at week 6 and 12 (simulate purchases)
-    const dip = (w === 6 || w === 11) ? -Math.floor(spendTokens * 0.15) : 0;
-    spendAcc += Math.floor(weeklySpend * (0.8 + 0.4 * Math.sin(w * 0.5))) + dip;
-    spendAcc = Math.max(0, Math.min(spendAcc, spendTokens));
-    const saveAcc = Math.floor(weeklySave * w);
-    const growAcc = Math.floor(growTokens * (1 - Math.pow(1 - t, 1.2)));
+    const wobble = 1 + 0.1 * Math.sin(w * 1.3);
+    const dip = dipWeeks.has(w) ? 0.85 : 1;
     entries.push({
       week: w,
-      spendBalance: spendAcc,
-      saveBalance: Math.max(0, Math.min(saveAcc, saveTokens)),
-      growBalance: Math.max(0, Math.min(growAcc, growTokens)),
+      spendBalance: Math.max(0, Math.round(spendTokens * t * wobble * dip)),
+      saveBalance: Math.max(0, Math.round(saveTokens * t)),
+      growBalance: Math.max(0, Math.round(growTokens * Math.pow(t, 1.25))),
     });
   }
   // Ensure final week matches current balances

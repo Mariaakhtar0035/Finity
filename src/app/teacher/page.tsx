@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Segmented, Toast } from "@/components/ui/Feedback";
 import { EmptyState } from "@/components/EmptyState";
 import { ManageStudentModal } from "@/components/ManageStudentModal";
+import { ClassInsights } from "@/components/ClassInsights";
 import { rewardTint } from "@/lib/palette";
 import { RewardIcon } from "@/components/RewardIcon";
 import { MissionCard } from "@/components/MissionCard";
@@ -50,7 +51,7 @@ import {
 import { Mission, Reward, MissionBandColor } from "@/types";
 import { useStore, hasTeacherSession, setTeacherSession } from "@/lib/useStore";
 
-type TeacherTab = "missions" | "rewards" | "requests" | "students";
+type TeacherTab = "missions" | "rewards" | "requests" | "students" | "insights";
 
 export default function TeacherDashboard() {
   const router = useRouter();
@@ -190,6 +191,7 @@ export default function TeacherDashboard() {
     { value: "requests", label: "Requests", count: requestedMissions.length + pendingMissions.length },
     { value: "rewards", label: "Rewards" },
     { value: "students", label: "Students" },
+    { value: "insights", label: "Insights" },
   ];
 
   const summary = [
@@ -492,6 +494,12 @@ export default function TeacherDashboard() {
                     </ul>
                   )}
                 </Card>
+              </section>
+            )}
+
+            {activeTab === "insights" && (
+              <section role="tabpanel" aria-label="Insights">
+                <ClassInsights students={students} />
               </section>
             )}
 

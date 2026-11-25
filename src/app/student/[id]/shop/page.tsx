@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, Target } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin } from "@/components/ui/Coin";
@@ -10,7 +10,8 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BagDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
-import { getRewards, getStudent, purchaseReward } from "@/lib/store";
+import { getRewards, getStudent, purchaseReward, setSaveGoalReward } from "@/lib/store";
+import Link from "next/link";
 import { rewardTint } from "@/lib/palette";
 import { useStore } from "@/lib/useStore";
 import { RewardIcon } from "@/components/RewardIcon";
@@ -72,6 +73,7 @@ export default function RewardShopPage() {
           const canAfford = student.spendTokens >= reward.cost;
           const owned = student.purchasedRewards.includes(reward.id);
           const shortBy = reward.cost - student.spendTokens;
+          const isGoal = student.saveGoalRewardId === reward.id;
 
           return (
             <Card key={reward.id} className={`flex flex-col overflow-hidden ${reward.soldOut ? "opacity-60" : "lift"}`}>
@@ -85,6 +87,11 @@ export default function RewardShopPage() {
                 {reward.soldOut && (
                   <span className="absolute top-3 right-3 h-6 px-2.5 rounded-full bg-ink text-white text-xs font-medium flex items-center">
                     Sold out
+                  </span>
+                )}
+                {isGoal && !owned && !reward.soldOut && (
+                  <span className="absolute top-3 left-3 h-6 px-2.5 rounded-full bg-surface text-xs font-medium flex items-center gap-1">
+                    <Target className="w-3.5 h-3.5" /> Your goal
                   </span>
                 )}
                 {owned && !reward.soldOut && (
@@ -122,12 +129,29 @@ export default function RewardShopPage() {
                       <Button variant="secondary" fullWidth disabled>
                         {shortBy} more tokens needed
                       </Button>
-                      <div className="h-1.5 rounded-full bg-paper mt-3 overflow-hidden" aria-hidden>
-                        <div
-                          className="h-full rounded-full bg-peach-deep"
-                          style={{ width: `${Math.min(100, (student.spendTokens / reward.cost) * 100)}%` }}
-                        />
-                      </div>
+                      {isGoal ? (
+                        <Link
+                          href={`/student/${studentId}/save`}
+                          className="block text-center text-sm text-muted mt-3 hover:text-ink"
+                        >
+                          You&apos;re saving for this · see progress
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSaveGoalReward(studentId, reward.id);
+                            setModal({
+                              success: true,
+                              title: "New savings goal",
+                              message: `You're now saving for ${reward.title}. Track it on your Save page.`,
+                            });
+                          }}
+                          className="w-full flex items-center justify-center gap-1.5 text-sm text-ink-soft mt-3 hover:text-ink"
+                        >
+                          <Target className="w-4 h-4" /> Save for this instead
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

@@ -22,6 +22,7 @@ let students: Student[] = [
     growTokens: 95,
     assignedMissions: ["mission-1", "mission-5"],
     purchasedRewards: ["reward-2"],
+    saveGoalRewardId: "reward-3",
     balanceHistory: [
       { week: 1, spendBalance: 20, saveBalance: 6, growBalance: 10 },
       { week: 2, spendBalance: 55, saveBalance: 12, growBalance: 22 },
@@ -46,6 +47,7 @@ let students: Student[] = [
     growTokens: 82,
     assignedMissions: ["mission-2"],
     purchasedRewards: ["reward-1", "reward-2"],
+    saveGoalRewardId: "reward-10",
     balanceHistory: [
       { week: 1, spendBalance: 30, saveBalance: 3, growBalance: 15 },
       { week: 2, spendBalance: 65, saveBalance: 6, growBalance: 28 },
@@ -68,6 +70,7 @@ let students: Student[] = [
     growTokens: 120,
     assignedMissions: ["mission-3"],
     purchasedRewards: ["reward-1", "reward-3"],
+    saveGoalRewardId: "reward-4",
   },
   {
     id: "riley",
@@ -555,7 +558,7 @@ export function verifyClassCode(input: string): boolean {
 /* ------------------------------------------------------------------
    Persistence + change notifications
 ------------------------------------------------------------------- */
-const STORAGE_KEY = "finity-demo-v3";
+const STORAGE_KEY = "finity-demo-v4";
 
 type Snapshot = {
   students: Student[];
@@ -811,6 +814,86 @@ export function isTourDismissed(): boolean {
 export function setTourDismissed(dismissed: boolean) {
   touch();
   tourDismissed = dismissed;
+}
+
+/* ------------------------------------------------------------------
+   Saving toward a reward
+------------------------------------------------------------------- */
+export const DEFAULT_SAVE_GOAL = 200;
+
+export type SaveGoal =
+  | { kind: "reward"; reward: Reward; target: number }
+  | { kind: "amount"; target: number };
+
+/** The student's current goal: a reward they picked, else a custom amount */
+export function getSaveGoal(student: Student): SaveGoal {
+  const reward = student.saveGoalRewardId ? getReward(student.saveGoalRewardId) : undefined;
+  if (reward) return { kind: "reward", reward, target: reward.cost };
+  return { kind: "amount", target: student.saveGoal ?? DEFAULT_SAVE_GOAL };
+}
+
+export function setSaveGoalReward(studentId: string, rewardId: string | null): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student) return false;
+  if (rewardId && !getReward(rewardId)) return false;
+  student.saveGoalRewardId = rewardId ?? undefined;
+  return true;
+}
+
+/**
+ * Average Save tokens added per week over the last few weeks, or 0 if the
+ * balance hasn't been growing. Used for "about N weeks to go".
+ */
+export function getWeeklySavePace(student: Student, weeks = 4): number {
+  const h = student.balanceHistory ?? [];
+  if (h.length < 2) return 0;
+  const recent = h.slice(-(weeks + 1));
+  const gained = recent[recent.length - 1].saveBalance - recent[0].saveBalance;
+  const pace = gained / (recent.length - 1);
+  return pace > 0 ? pace : 0;
+}
+
+/** Spend Save tokens on the goal reward once the student has saved enough */
+export function buyWithSavings(studentId: string, rewardId: string): { student: Student; reward: Reward } | null {
+  touch();
+  const student = getStudent(studentId);
+  const reward = getReward(rewardId);
+  if (!student || !reward || reward.soldOut) return null;
+  if (student.purchasedRewards.includes(rewardId)) return null;
+  if (student.saveTokens < reward.cost) return null;
+
+  student.saveTokens -= reward.cost;
+  student.purchasedRewards.push(rewardId);
+  if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
+  snapshotBalances(student);
+  logActivity({ studentId, kind: "spent", title: `Bought ${reward.title} with savings`, spend: 0, save: -reward.cost, grow: 0 });
+  markTour("buy");
+  return { student, reward };
+}
+
+/* ------------------------------------------------------------------
+   Class-wide insights
+------------------------------------------------------------------- */
+
+/** Sum of every student's Spend / Save / Grow balance for each week on record */
+export function getClassHistory(): BalanceHistoryEntry[] {
+  const byWeek = new Map<number, BalanceHistoryEntry>();
+  students.forEach((s) => {
+    (s.balanceHistory ?? []).forEach((e) => {
+      const row = byWeek.get(e.week) ?? { week: e.week, spendBalance: 0, saveBalance: 0, growBalance: 0 };
+      row.spendBalance += e.spendBalance;
+      row.saveBalance += e.saveBalance;
+      row.growBalance += e.growBalance;
+      byWeek.set(e.week, row);
+    });
+  });
+  return [...byWeek.values()].sort((a, b) => a.week - b.week);
+}
+
+/** Total Grow interest paid to the whole class */
+export function getClassInterestPaid(): number {
+  return activity.filter((a) => a.kind === "interest").reduce((sum, a) => sum + a.grow, 0);
 }
 
 /* ------------------------------------------------------------------
@@ -1255,8 +1338,9 @@ export function deleteReward(rewardId: string): boolean {
   touch();
   const index = rewards.findIndex((r) => r.id === rewardId);
   if (index === -1) return false;
-  // Remove from all students' purchasedRewards
+  // Remove from all students' purchasedRewards and savings goals
   students.forEach((student) => {
+    if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
     if (student.purchasedRewards.includes(rewardId)) {
       const updated = student.purchasedRewards.filter((id) => id !== rewardId);
       updateStudent(student.id, { purchasedRewards: updated });
@@ -1278,6 +1362,8 @@ export function purchaseReward(studentId: string, rewardId: string): { student: 
   // Deduct tokens
   student.spendTokens -= reward.cost;
   
+  if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
+
   // Add to purchased rewards
   if (!student.purchasedRewards.includes(rewardId)) {
     student.purchasedRewards.push(rewardId);
