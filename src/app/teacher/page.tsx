@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
+import { Copy, LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin, TOKEN_META } from "@/components/ui/Coin";
@@ -24,6 +24,8 @@ import { AssignMissionModal } from "@/components/AssignMissionModal";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import {
+  CLASSROOM,
+  formatClassCode,
   assignOrReassignMission,
   completeMission,
   getMissions,
@@ -204,7 +206,28 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
-        <PageHeader eyebrow="Teacher dashboard" title="Your classroom economy" />
+        <PageHeader
+          eyebrow={CLASSROOM.name}
+          title="Your classroom economy"
+          action={
+            <div className="flex items-center gap-4 bg-surface border border-line rounded-2xl pl-5 pr-2 py-2">
+              <div>
+                <p className="text-xs text-muted">Class code</p>
+                <p className="font-display text-2xl tracking-[0.12em] num">{formatClassCode()}</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard?.writeText(formatClassCode());
+                  triggerSuccess("Class code copied. Students join at /join");
+                }}
+              >
+                <Copy className="w-4 h-4" /> Copy
+              </Button>
+            </div>
+          }
+        />
 
         {!authorized ? (
           <Loading />

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, GraduationCap, Backpack } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Coin, TOKEN_META, TokenType } from "@/components/ui/Coin";
 import { Logo } from "@/components/ui/Logo";
@@ -13,15 +13,10 @@ import {
   SproutDoodle,
   StarDoodle,
 } from "@/components/ui/Doodles";
-import { StudentAvatar } from "@/components/StudentAvatar";
 import { MrsPennyworthAvatar, PennyworthPortrait } from "@/components/MrsPennyworthAvatar";
-import { getStudents, resetDemo } from "@/lib/store";
-import { useStore } from "@/lib/useStore";
+import { formatClassCode, resetDemo } from "@/lib/store";
 import { useEffect } from "react";
 
-function scrollToChoosePlayer() {
-  document.getElementById("choose-player")?.scrollIntoView({ behavior: "smooth" });
-}
 
 const STATS = [
   { value: "64%", label: "of Canadians say they never learned financial literacy in school." },
@@ -63,8 +58,6 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
-  useStore();
-  const students = getStudents();
 
   // Hidden maintenance hook: visiting /?reset restores the starting data
   useEffect(() => {
@@ -93,7 +86,9 @@ export default function HomePage() {
             <Link href="/teacher/login" className="hidden sm:block">
               <Button variant="secondary" size="sm">Teacher login</Button>
             </Link>
-            <Button size="sm" onClick={scrollToChoosePlayer}>Start playing</Button>
+            <Link href="/join">
+              <Button size="sm">Join your class</Button>
+            </Link>
           </div>
         </nav>
       </div>
@@ -110,9 +105,11 @@ export default function HomePage() {
             habits long before the stakes are real.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
-            <Button size="lg" onClick={scrollToChoosePlayer}>
-              Join your class <ArrowRight className="w-4 h-4" />
-            </Button>
+            <Link href="/join">
+              <Button size="lg">
+                Join your class <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
             <Link href="/teacher/login">
               <Button size="lg" variant="secondary">I&apos;m a teacher</Button>
             </Link>
@@ -230,26 +227,48 @@ export default function HomePage() {
       </section>
 
       {/* ========== CHOOSE YOUR PLAYER ========== */}
-      <section id="choose-player" className="px-6 pb-24 md:pb-32 scroll-mt-24">
+      <section id="get-started" className="px-6 pb-24 md:pb-32 scroll-mt-24">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="display text-5xl md:text-6xl text-ink">Who&apos;s playing today?</h2>
-            <p className="text-lg text-muted mt-4">Pick your name to sign in with your PIN.</p>
+            <h2 className="display text-5xl md:text-6xl text-ink">Ready to start?</h2>
+            <p className="text-lg text-muted mt-4">Students join with a class code. Teachers set everything up.</p>
+            <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-6 px-4 py-2 rounded-full bg-butter-soft border border-[#efe3ae] text-sm text-ink-soft">
+              <span className="font-medium text-ink">Try the demo</span>
+              <span>· Class code <span className="font-medium text-ink tracking-wider">{formatClassCode()}</span></span>
+              <span>· PIN <span className="font-medium text-ink tracking-wider">1234</span></span>
+            </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {students.map((student) => (
-              <Link
-                key={student.id}
-                href={`/student/${student.id}/login`}
-                className="group bg-surface rounded-[var(--radius-card)] border border-line p-6 md:p-8 flex flex-col items-center text-center lift"
-              >
-                <StudentAvatar studentId={student.id} studentName={student.name} size="lg" />
-                <span className="font-display text-2xl tracking-tight mt-5">{student.name}</span>
-                <span className="inline-flex items-center gap-1 text-sm text-muted mt-1 group-hover:text-ink transition-colors">
-                  Sign in <ArrowUpRight className="w-3.5 h-3.5" />
-                </span>
-              </Link>
-            ))}
+          <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+            <Link
+              href="/join"
+              className="group bg-surface rounded-[var(--radius-card)] border border-line p-8 md:p-10 flex flex-col lift"
+            >
+              <span className="w-14 h-14 rounded-full bg-peach-soft border-2 border-ink flex items-center justify-center">
+                <Backpack className="w-6 h-6" strokeWidth={1.75} />
+              </span>
+              <h3 className="font-display text-3xl tracking-tight mt-8">I&apos;m a student</h3>
+              <p className="text-muted mt-2 leading-relaxed">
+                Enter the class code from your teacher, find your name and sign in with your PIN.
+              </p>
+              <span className="inline-flex items-center gap-1.5 mt-8 font-medium">
+                Join your class <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
+            <Link
+              href="/teacher/login"
+              className="group bg-surface rounded-[var(--radius-card)] border border-line p-8 md:p-10 flex flex-col lift"
+            >
+              <span className="w-14 h-14 rounded-full bg-periwinkle-soft border-2 border-ink flex items-center justify-center">
+                <GraduationCap className="w-6 h-6" strokeWidth={1.75} />
+              </span>
+              <h3 className="font-display text-3xl tracking-tight mt-8">I&apos;m a teacher</h3>
+              <p className="text-muted mt-2 leading-relaxed">
+                Create missions, stock the reward shop, approve work and track every student&apos;s progress.
+              </p>
+              <span className="inline-flex items-center gap-1.5 mt-8 font-medium">
+                Teacher sign in <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
           </div>
         </div>
       </section>

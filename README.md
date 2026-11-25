@@ -56,7 +56,7 @@ The AI is optional: without a key, Mrs. Pennyworth falls back to built-in answer
 npm run dev
 ```
 
-Open http://localhost:3000. Every demo PIN (students and teacher) is `1234`.
+Open http://localhost:3000. Students join with class code `FIN-482`, then pick their name. Every PIN (students and teacher) is `1234`.
 
 ## How the demo works
 

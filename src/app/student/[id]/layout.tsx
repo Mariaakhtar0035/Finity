@@ -195,7 +195,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </div>
           </button>
           <Link
-            href="/"
+            href="/join"
             onClick={handleLogout}
             className="flex items-center gap-3 h-11 px-3 rounded-xl text-[15px] text-muted hover:text-ink hover:bg-paper"
           >
@@ -211,7 +211,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           <Logo href={base} />
           <div className="flex items-center gap-2">
             <Link
-              href="/"
+              href="/join"
               onClick={handleLogout}
               className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-paper"
               aria-label="Sign out"

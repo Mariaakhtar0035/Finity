@@ -99,6 +99,186 @@ let students: Student[] = [
     assignedMissions: [],
     purchasedRewards: [],
   },
+  {
+    id: "aiden",
+    name: "Aiden",
+    pin: "1234",
+    spendTokens: 122,
+    saveTokens: 29,
+    growTokens: 121,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "amara",
+    name: "Amara",
+    pin: "1234",
+    spendTokens: 206,
+    saveTokens: 16,
+    growTokens: 38,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "ben",
+    name: "Ben",
+    pin: "1234",
+    spendTokens: 250,
+    saveTokens: 78,
+    growTokens: 44,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "chloe",
+    name: "Chloe",
+    pin: "1234",
+    spendTokens: 133,
+    saveTokens: 84,
+    growTokens: 34,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "daniel",
+    name: "Daniel",
+    pin: "1234",
+    spendTokens: 169,
+    saveTokens: 37,
+    growTokens: 29,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "elena",
+    name: "Elena",
+    pin: "1234",
+    spendTokens: 62,
+    saveTokens: 65,
+    growTokens: 127,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "ethan",
+    name: "Ethan",
+    pin: "1234",
+    spendTokens: 57,
+    saveTokens: 40,
+    growTokens: 43,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "fatima",
+    name: "Fatima",
+    pin: "1234",
+    spendTokens: 181,
+    saveTokens: 64,
+    growTokens: 35,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "grace",
+    name: "Grace",
+    pin: "1234",
+    spendTokens: 251,
+    saveTokens: 82,
+    growTokens: 51,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "hiro",
+    name: "Hiro",
+    pin: "1234",
+    spendTokens: 97,
+    saveTokens: 90,
+    growTokens: 35,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "isla",
+    name: "Isla",
+    pin: "1234",
+    spendTokens: 187,
+    saveTokens: 84,
+    growTokens: 121,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "jamal",
+    name: "Jamal",
+    pin: "1234",
+    spendTokens: 52,
+    saveTokens: 38,
+    growTokens: 31,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "leah",
+    name: "Leah",
+    pin: "1234",
+    spendTokens: 182,
+    saveTokens: 119,
+    growTokens: 54,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "lucas",
+    name: "Lucas",
+    pin: "1234",
+    spendTokens: 114,
+    saveTokens: 63,
+    growTokens: 56,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "maya",
+    name: "Maya",
+    pin: "1234",
+    spendTokens: 178,
+    saveTokens: 25,
+    growTokens: 98,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "noah",
+    name: "Noah",
+    pin: "1234",
+    spendTokens: 183,
+    saveTokens: 114,
+    growTokens: 66,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "olivia",
+    name: "Olivia",
+    pin: "1234",
+    spendTokens: 66,
+    saveTokens: 84,
+    growTokens: 68,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "priya",
+    name: "Priya",
+    pin: "1234",
+    spendTokens: 135,
+    saveTokens: 22,
+    growTokens: 36,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
 ];
 
 let missions: Mission[] = [
@@ -351,9 +531,31 @@ let rewards: Reward[] = [
 ];
 
 /* ------------------------------------------------------------------
+   Classroom
+------------------------------------------------------------------- */
+export const CLASSROOM = {
+  name: "Grade 7 · Room 204",
+  /** Shown to teachers as FIN-482; students can type it with or without the dash */
+  code: "FIN482",
+};
+
+/** Normalize what a student typed: uppercase, letters and digits only */
+export function normalizeClassCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export function formatClassCode(code: string = CLASSROOM.code): string {
+  return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
+}
+
+export function verifyClassCode(input: string): boolean {
+  return normalizeClassCode(input) === CLASSROOM.code;
+}
+
+/* ------------------------------------------------------------------
    Persistence + change notifications
 ------------------------------------------------------------------- */
-const STORAGE_KEY = "finity-demo-v1";
+const STORAGE_KEY = "finity-demo-v2";
 
 type Snapshot = {
   students: Student[];

@@ -4,12 +4,12 @@ import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 /** Centered card layout shared by the student and teacher sign-in pages */
-export function AuthShell({ children }: { children: React.ReactNode }) {
+export function AuthShell({ children, backHref = "/" }: { children: React.ReactNode; backHref?: string }) {
   return (
     <div className="min-h-screen bg-paper flex flex-col">
       <header className="flex items-center justify-between px-6 h-20 max-w-6xl w-full mx-auto">
         <Logo />
-        <Link href="/" className="inline-flex items-center gap-1.5 text-[15px] text-muted hover:text-ink">
+        <Link href={backHref} className="inline-flex items-center gap-1.5 text-[15px] text-muted hover:text-ink">
           <ArrowLeft className="w-4 h-4" /> Back
         </Link>
       </header>

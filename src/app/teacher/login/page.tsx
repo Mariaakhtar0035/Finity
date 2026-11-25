@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { PinPad } from "@/components/PinPad";
+import { DemoHint } from "@/components/ui/Feedback";
 import { DEMO_TEACHER_PIN, setTeacherSession } from "@/lib/useStore";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 
@@ -17,6 +18,7 @@ export default function TeacherLoginPage() {
         <MrsPennyworthAvatar size="lg" className="w-20! h-20!" />
         <h1 className="font-display text-3xl tracking-tight mt-5">Teacher sign in</h1>
         <p className="text-muted mt-1">Enter your 4-digit PIN to manage your class</p>
+        <DemoHint label="Demo PIN" value={DEMO_TEACHER_PIN} className="mt-4" />
       </div>
       <PinPad
         verify={verify}

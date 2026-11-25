@@ -7,6 +7,7 @@ import { PinPad } from "@/components/PinPad";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { getStudent, isHydrated, verifyStudentPin } from "@/lib/store";
 import { useStore } from "@/lib/useStore";
+import { DemoHint } from "@/components/ui/Feedback";
 
 const SESSION_KEY = "student_session";
 
@@ -34,11 +35,17 @@ export default function StudentLoginPage() {
   const verify = async (pin: string) => verifyStudentPin(studentId, pin);
 
   return (
-    <AuthShell>
+    <AuthShell backHref="/join">
       <div className="flex flex-col items-center text-center mb-8">
         <StudentAvatar studentId={student.id} studentName={student.name} size="lg" />
         <h1 className="font-display text-3xl tracking-tight mt-5">Hi, {student.name}</h1>
-        <p className="text-muted mt-1">Enter your 4-digit PIN</p>
+        <p className="text-muted mt-1">
+          Enter your 4-digit PIN ·{" "}
+          <Link href="/join" className="underline underline-offset-4 decoration-line-strong hover:text-ink">
+            Not you?
+          </Link>
+        </p>
+        <DemoHint label="Demo PIN" value={student.pin} className="mt-4" />
       </div>
       <PinPad
         verify={verify}

@@ -189,3 +189,35 @@ export function TypingDots({ label }: { label?: string }) {
     </span>
   );
 }
+
+/* ------------------------------------------------------------------
+   Demo hint — helps showcase visitors get past sign-in
+------------------------------------------------------------------- */
+export function DemoHint({
+  label,
+  value,
+  onUse,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  /** Optional: fill the value in for the visitor */
+  onUse?: () => void;
+  className?: string;
+}) {
+  const content = (
+    <>
+      <span className="text-ink-soft">{label}</span>
+      <span className="font-medium text-ink num tracking-wider">{value}</span>
+      {onUse && <span className="text-ink-soft underline underline-offset-2 decoration-ink/30">Use</span>}
+    </>
+  );
+  const cls = `inline-flex items-center gap-2 h-8 px-3.5 rounded-full bg-butter-soft border border-[#efe3ae] text-sm ${className}`;
+  return onUse ? (
+    <button type="button" onClick={onUse} className={`${cls} hover:brightness-[0.97] transition`}>
+      {content}
+    </button>
+  ) : (
+    <p className={cls}>{content}</p>
+  );
+}
