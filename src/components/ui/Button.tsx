@@ -1,46 +1,48 @@
 import React from "react";
 
-interface ButtonProps {
+type Variant = "primary" | "secondary" | "ghost" | "success" | "danger";
+type Size = "sm" | "md" | "lg";
+
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "className"> {
   children: React.ReactNode;
-  onClick?: () => void;
-  variant?: "primary" | "secondary" | "success" | "danger";
-  disabled?: boolean;
+  variant?: Variant;
+  size?: Size;
+  fullWidth?: boolean;
   className?: string;
-  type?: "button" | "submit" | "reset";
 }
+
+const VARIANTS: Record<Variant, string> = {
+  primary: "bg-ink text-white border border-ink hover:bg-ink-soft",
+  // "success" is the same high-emphasis action; colour is reserved for tokens
+  success: "bg-ink text-white border border-ink hover:bg-ink-soft",
+  secondary: "bg-transparent text-ink border border-ink hover:bg-ink/5",
+  ghost: "bg-transparent text-ink border border-transparent hover:bg-ink/5",
+  danger: "bg-negative text-white border border-negative hover:brightness-95",
+};
+
+const SIZES: Record<Size, string> = {
+  sm: "h-9 px-4 text-sm",
+  md: "h-11 px-6 text-[15px]",
+  lg: "h-14 px-8 text-base",
+};
 
 export function Button({
   children,
-  onClick,
   variant = "primary",
-  disabled = false,
+  size = "md",
+  fullWidth = false,
   className = "",
   type = "button",
+  ...rest
 }: ButtonProps) {
-  const baseClasses =
-    "px-6 py-3 rounded-xl font-display font-bold text-base transition-all duration-200 opacity-100 select-none " +
-    "border-2 shadow-md " +
-    "hover:-translate-y-0.5 hover:shadow-lg " +
-    "active:translate-y-0.5 active:shadow-sm " +
-    "disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 disabled:hover:translate-y-0 disabled:active:translate-y-0";
-
-  const variantClasses = {
-    primary:
-      "bg-blue-500 text-white border-blue-500/80 hover:bg-blue-600 hover:border-blue-600",
-    secondary:
-      "bg-amber-100 text-gray-800 border-amber-300 hover:bg-amber-200 hover:border-amber-400",
-    success:
-      "bg-emerald-500 text-white border-emerald-500/80 hover:bg-emerald-600 hover:border-emerald-600",
-    danger:
-      "bg-red-500 text-white border-red-500/80 hover:bg-red-600 hover:border-red-600",
-  };
-
   return (
     <button
       type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap select-none
+        transition-[background-color,transform,filter] duration-150 active:scale-[0.98]
+        disabled:opacity-40 disabled:active:scale-100
+        ${VARIANTS[variant]} ${SIZES[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      {...rest}
     >
       {children}
     </button>

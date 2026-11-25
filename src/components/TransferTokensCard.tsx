@@ -1,20 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { ArrowDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
 import { Button } from "@/components/ui/Button";
+import { Coin, TOKEN_META } from "@/components/ui/Coin";
+import { Callout } from "@/components/ui/Feedback";
 import { transferTokens, type TokenBucket } from "@/lib/store";
 
-const BUCKETS: { value: TokenBucket; label: string; icon: string }[] = [
-  { value: "spend", label: "Spend", icon: "🪙" },
-  { value: "save", label: "Save", icon: "💰" },
-  { value: "grow", label: "Grow", icon: "🌱" },
-];
-
-function getBucketLabel(bucket: TokenBucket): string {
-  return BUCKETS.find((b) => b.value === bucket)?.label ?? bucket;
-}
+const BUCKETS: TokenBucket[] = ["spend", "save", "grow"];
 
 interface TransferTokensCardProps {
   studentId: string;
@@ -27,6 +21,51 @@ interface TransferTokensCardProps {
 
 const TRANSFER_INSIGHT_FALLBACK =
   "Moving tokens to Grow helps them grow over time! Moving to Spend lets you use them now. It's like planting seeds vs picking fruit!";
+
+function BucketPicker({
+  label,
+  value,
+  options,
+  balances,
+  onChange,
+}: {
+  label: string;
+  value: TokenBucket;
+  options: TokenBucket[];
+  balances: Record<TokenBucket, number>;
+  onChange: (b: TokenBucket) => void;
+}) {
+  return (
+    <div>
+      <p className="label">{label}</p>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={label}>
+        {BUCKETS.map((b) => {
+          const enabled = options.includes(b);
+          const active = value === b;
+          return (
+            <button
+              key={b}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              disabled={!enabled}
+              onClick={() => onChange(b)}
+              className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 text-left transition-all disabled:opacity-30 ${
+                active ? "border-ink bg-surface ring-1 ring-ink" : "border-line bg-surface hover:border-line-strong"
+              }`}
+            >
+              <Coin type={b} size={24} />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium leading-tight">{TOKEN_META[b].label}</span>
+                <span className="block text-xs text-muted num">{balances[b]}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function TransferTokensCard({
   studentId,
@@ -54,11 +93,7 @@ export function TransferTokensCard({
     fetch("/api/gemini/explain", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "TRANSFER_INSIGHT",
-        studentName,
-        context: {},
-      }),
+      body: JSON.stringify({ type: "TRANSFER_INSIGHT", studentName, context: {} }),
     })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Failed"))))
       .then((data) => setTransferExplanation(data.explanation ?? TRANSFER_INSIGHT_FALLBACK))
@@ -71,17 +106,17 @@ export function TransferTokensCard({
     setSuccess(null);
     const num = parseInt(amount, 10);
     if (isNaN(num) || num <= 0) {
-      setError("Enter a valid amount.");
+      setError("Enter an amount above zero.");
       return;
     }
     if (num > maxAmount) {
-      setError(`You only have ${maxAmount} ${getBucketLabel(from)} tokens.`);
+      setError(`You only have ${maxAmount} ${TOKEN_META[from].label} tokens.`);
       return;
     }
     const result = transferTokens(studentId, num, from, to);
     if (result) {
       setAmount("");
-      setSuccess(`Moved ${num} tokens from ${getBucketLabel(from)} to ${getBucketLabel(to)}!`);
+      setSuccess(`Moved ${num} tokens from ${TOKEN_META[from].label} to ${TOKEN_META[to].label}.`);
       onTransfer();
       setTimeout(() => setSuccess(null), 3000);
     } else {
@@ -90,122 +125,82 @@ export function TransferTokensCard({
   };
 
   return (
-    <Card borderColor="border-emerald-500" className="p-6 bg-emerald-50">
-      <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-        Move Tokens
-      </h3>
-      <p className="text-sm text-gray-600 mb-4">
-        We recommend putting some tokens into Save and Grow for future goals.{" "}
+    <Card className="p-6 md:p-8">
+      <h2 className="font-display text-2xl tracking-tight">Move tokens</h2>
+      <p className="text-muted mt-1 text-[15px]">
+        Shift tokens between your accounts any time.{" "}
         <button
           type="button"
           onClick={handleExplainTransfer}
-          className="text-emerald-600 hover:text-emerald-700 font-bold underline"
+          className="text-ink underline underline-offset-4 decoration-line-strong hover:decoration-ink"
         >
           Why move tokens?
         </button>
       </p>
-      {loadingTransferExplanation && (
-        <div className="h-10 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center mb-2">
-          <span className="text-sm text-gray-500">Mrs. Pennyworth is thinking…</span>
-        </div>
-      )}
-      {transferExplanation && !loadingTransferExplanation && (
-        <p className="text-gray-700 font-medium border-l-4 border-emerald-400 pl-4 py-2 bg-emerald-50/80 rounded-r-xl mb-4">
+
+      {(loadingTransferExplanation || transferExplanation) && (
+        <Callout loading={loadingTransferExplanation} className="mt-4">
           {transferExplanation}
-        </p>
+        </Callout>
       )}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
-            Move from
+
+      <div className="mt-6 space-y-3">
+        <BucketPicker
+          label="From"
+          value={from}
+          options={BUCKETS}
+          balances={balances}
+          onChange={(b) => {
+            setFrom(b);
+            if (to === b) setTo(BUCKETS.find((x) => x !== b)!);
+          }}
+        />
+        <div className="flex justify-center" aria-hidden>
+          <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center">
+            <ArrowDown className="w-4 h-4 text-muted" />
+          </span>
+        </div>
+        <BucketPicker
+          label="To"
+          value={to}
+          options={BUCKETS.filter((b) => b !== from)}
+          balances={balances}
+          onChange={setTo}
+        />
+
+        <div className="pt-2">
+          <label htmlFor="transfer-amount" className="label">
+            Amount
           </label>
-          <div className="flex gap-2 flex-wrap" role="group" aria-label="Source bucket">
-            {BUCKETS.map((b) => (
-              <button
-                key={b.value}
-                type="button"
-                onClick={() => {
-                  setFrom(b.value);
-                  if (to === b.value) setTo(BUCKETS.find((x) => x.value !== b.value)!.value);
-                }}
-                className={`px-3 py-2 rounded-lg font-display font-bold text-xs transition-all border-2 ${
-                  from === b.value
-                    ? b.value === "spend"
-                      ? "bg-amber-500 text-white border-amber-600"
-                      : b.value === "save"
-                        ? "bg-sky-500 text-white border-sky-600"
-                        : "bg-emerald-500 text-white border-emerald-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
-                }`}
-              >
-                {b.icon} {b.label}
-              </button>
-            ))}
+          <div className="flex gap-2">
+            <input
+              id="transfer-amount"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={maxAmount}
+              placeholder={`Up to ${maxAmount}`}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="input num"
+            />
+            <Button
+              variant="secondary"
+              onClick={() => setAmount(String(maxAmount))}
+              disabled={maxAmount === 0}
+              className="h-auto! shrink-0"
+            >
+              Max
+            </Button>
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
-            Move to
-          </label>
-          <div className="flex gap-2 flex-wrap" role="group" aria-label="Destination bucket">
-            {BUCKETS.filter((b) => b.value !== from).map((b) => (
-              <button
-                key={b.value}
-                type="button"
-                onClick={() => setTo(b.value)}
-                className={`px-3 py-2 rounded-lg font-display font-bold text-xs transition-all border-2 ${
-                  to === b.value
-                    ? b.value === "spend"
-                      ? "bg-amber-500 text-white border-amber-600"
-                      : b.value === "save"
-                        ? "bg-sky-500 text-white border-sky-600"
-                        : "bg-emerald-500 text-white border-emerald-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
-                }`}
-              >
-                {b.icon} {b.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
-            Amount to move
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={maxAmount}
-            placeholder={`Max: ${maxAmount}`}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl border-2 border-gray-300 font-display focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-          />
-        </div>
-        <Button
-          variant={canTransfer ? "success" : "secondary"}
-          onClick={handleTransfer}
-          disabled={!canTransfer || !amount}
-          className="w-full py-2 text-sm"
-        >
-          Submit
+
+        <Button onClick={handleTransfer} disabled={!canTransfer || !amount} fullWidth size="lg" className="mt-2">
+          Move tokens
         </Button>
-        <div className="mt-4 flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <TokenDisplay amount={spendTokens} type="spend" size="sm" showLabel={false} />
-            <span className="text-gray-600">Spend</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <TokenDisplay amount={saveTokens} type="save" size="sm" showLabel={false} />
-            <span className="text-gray-600">Save</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <TokenDisplay amount={growTokens} type="grow" size="sm" showLabel={false} />
-            <span className="text-gray-600">Grow</span>
-          </div>
-        </div>
-        {error && <p className="mt-3 text-red-600 font-medium text-sm">{error}</p>}
-        {success && <p className="mt-3 text-emerald-600 font-medium text-sm">{success}</p>}
+
+        {error && <p className="text-sm text-negative">{error}</p>}
+        {success && <p className="text-sm text-positive">{success}</p>}
       </div>
     </Card>
   );

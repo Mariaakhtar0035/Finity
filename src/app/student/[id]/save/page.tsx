@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
 import { Button } from "@/components/ui/Button";
+import { Coin } from "@/components/ui/Coin";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { JarDoodle } from "@/components/ui/Doodles";
+import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import { getStudent, updateStudent } from "@/lib/store";
 
 const DEFAULT_SAVE_GOAL = 200;
+
+const TIPS = [
+  { title: "Start small", body: "Even a few tokens each time adds up faster than you'd think." },
+  { title: "Name your goal", body: "Saving for something specific makes waiting a lot easier." },
+  { title: "Save first", body: "Put a little in Save before you spend the rest." },
+];
 
 export default function SaveTokensPage() {
   const params = useParams();
@@ -23,125 +33,124 @@ export default function SaveTokensPage() {
   const saveGoal = student.saveGoal ?? DEFAULT_SAVE_GOAL;
   const progress = Math.min(100, Math.round((student.saveTokens / saveGoal) * 100));
   const remaining = Math.max(0, saveGoal - student.saveTokens);
-
-  const handleStartEdit = () => {
-    setEditValue(String(saveGoal));
-    setIsEditingGoal(true);
-  };
+  const editNum = parseInt(editValue, 10);
+  const editValid = !isNaN(editNum) && editNum >= 1 && editNum <= 9999;
 
   const handleSaveGoal = () => {
-    const num = parseInt(editValue, 10);
-    if (!isNaN(num) && num >= 1 && num <= 9999) {
-      updateStudent(studentId, { saveGoal: num });
-      setIsEditingGoal(false);
-      setEditValue("");
-      refresh();
-    }
-  };
-
-  const handleCancelEdit = () => {
+    if (!editValid) return;
+    updateStudent(studentId, { saveGoal: editNum });
     setIsEditingGoal(false);
     setEditValue("");
+    refresh();
   };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="font-display font-bold text-4xl text-gray-900 mb-2">
-          Save Tokens
-        </h1>
-        <p className="text-xl text-gray-700">
-          Saving helps you reach goals a little at a time.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Save"
+        title="Saving for something big"
+        description="Save tokens are set aside for a goal you choose. Watch the jar fill up."
+      />
 
-      <Card borderColor="border-sky-500" className="p-6 text-center">
-        <div className="flex justify-center mb-3">
-          <TokenDisplay amount={student.saveTokens} type="save" size="lg" showLabel={false} />
-        </div>
-        <p className="text-sm text-gray-600 font-medium">
-          These are your set‑aside tokens for future goals.
-        </p>
-      </Card>
+      <Card className="overflow-hidden">
+        <div className="grid md:grid-cols-[1fr_auto]">
+          <div className="p-6 md:p-8">
+            <div className="flex items-center gap-3">
+              <Coin type="save" size={40} />
+              <div>
+                <p className="text-sm text-muted">Save balance</p>
+                <p className="display text-5xl num">{student.saveTokens}</p>
+              </div>
+            </div>
 
-      <Card borderColor="border-emerald-500" className="p-6">
-        <h2 className="font-display font-bold text-2xl text-gray-900 mb-3 text-center">
-          🎯 Save Goal
-        </h2>
-        {isEditingGoal ? (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-            <label htmlFor="save-goal-input" className="sr-only">
-              Save goal amount
-            </label>
-            <input
-              id="save-goal-input"
-              type="number"
-              min={1}
-              max={9999}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="w-24 px-3 py-2 border-2 border-emerald-300 rounded-xl text-center font-display font-bold text-gray-900"
-            />
-            <span className="text-gray-600">Save tokens</span>
-            <div className="flex gap-2">
-              <Button variant="success" onClick={handleSaveGoal}>
-                Save
-              </Button>
-              <Button variant="secondary" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
+            <div className="mt-8">
+              <div className="flex items-baseline justify-between gap-4 mb-3">
+                {isEditingGoal ? (
+                  <form
+                    className="flex flex-wrap items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSaveGoal();
+                    }}
+                  >
+                    <label htmlFor="save-goal-input" className="text-sm text-muted">
+                      New goal
+                    </label>
+                    <input
+                      id="save-goal-input"
+                      type="number"
+                      min={1}
+                      max={9999}
+                      autoFocus
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="input w-28! py-2! num"
+                      aria-invalid={editValue !== "" && !editValid}
+                    />
+                    <Button type="submit" size="sm" disabled={!editValid}>
+                      Save
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingGoal(false)}>
+                      Cancel
+                    </Button>
+                  </form>
+                ) : (
+                  <p className="text-ink-soft">
+                    Goal: <span className="font-medium text-ink num">{saveGoal}</span> tokens
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditValue(String(saveGoal));
+                        setIsEditingGoal(true);
+                      }}
+                      className="ml-2 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </button>
+                  </p>
+                )}
+                <span className="font-display text-2xl num shrink-0">{progress}%</span>
+              </div>
+
+              <div
+                className="h-4 w-full rounded-full bg-periwinkle-soft overflow-hidden border border-[#d9def8]"
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Save goal progress"
+              >
+                <div className="h-full rounded-full bg-periwinkle-deep bar-grow" style={{ width: `${progress}%` }} />
+              </div>
+              <p className="text-sm text-muted mt-3">
+                {remaining === 0 ? "You reached your goal. Amazing work!" : `${remaining} tokens to go`}
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
-            <p className="text-center text-gray-600">
-              Goal: {saveGoal} Save tokens
-            </p>
-            <Button variant="secondary" onClick={handleStartEdit} className="px-3 py-1.5 text-sm">
-              Edit goal
-            </Button>
+          <div className="hidden md:flex items-end justify-center bg-periwinkle-soft px-12 pt-8">
+            <JarDoodle className="w-36 h-auto" />
           </div>
-        )}
-        <div className="h-6 w-full bg-emerald-100 rounded-full overflow-hidden border border-emerald-200">
-          <div
-            className="h-full bg-emerald-500 transition-all"
-            style={{ width: `${progress}%` }}
-            aria-label={`Save goal progress ${progress}%`}
-          />
         </div>
-        <p className="text-center text-sm text-gray-600 mt-3">
-          {progress}% complete • {remaining} tokens to go
-        </p>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card borderColor="border-amber-400" className="p-6">
-          <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Start Small</h3>
-          <p className="text-gray-700 text-sm">
-            Even saving a few tokens each time adds up fast.
-          </p>
-        </Card>
-        <Card borderColor="border-blue-400" className="p-6">
-          <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Name Your Goal</h3>
-          <p className="text-gray-700 text-sm">
-            Pick something exciting to save for—it makes waiting easier.
-          </p>
-        </Card>
-        <Card borderColor="border-purple-400" className="p-6">
-          <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Save First</h3>
-          <p className="text-gray-700 text-sm">
-            Put a little in Save before spending the rest.
-          </p>
-        </Card>
+      <div className="grid md:grid-cols-3 gap-4">
+        {TIPS.map((tip, i) => (
+          <Card key={tip.title} className="p-6">
+            <span className="w-8 h-8 rounded-full bg-paper font-display flex items-center justify-center num">{i + 1}</span>
+            <h3 className="text-lg font-medium mt-4">{tip.title}</h3>
+            <p className="text-muted mt-1 text-[15px] leading-relaxed">{tip.body}</p>
+          </Card>
+        ))}
       </div>
 
-      <Card borderColor="border-gray-800" className="p-6 bg-gray-50">
-        <h2 className="font-display font-bold text-2xl text-gray-900 mb-3">
-          Mrs. Pennyworth’s Tip
-        </h2>
-        <p className="text-gray-700">
-          “Saving is like planting a tiny seed. Keep planting, and soon you’ll have a whole garden!”
-        </p>
+      <Card className="p-6 md:p-8 flex gap-4 items-start">
+        <MrsPennyworthAvatar size="md" />
+        <div>
+          <p className="text-sm text-muted">Mrs. Pennyworth says</p>
+          <p className="font-display text-xl md:text-2xl tracking-tight leading-snug mt-1">
+            &ldquo;Saving is like planting a tiny seed. Keep planting, and soon you&apos;ll have a whole garden.&rdquo;
+          </p>
+        </div>
       </Card>
     </div>
   );

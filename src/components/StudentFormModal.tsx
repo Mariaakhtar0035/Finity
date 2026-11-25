@@ -49,57 +49,55 @@ export function StudentFormModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Student">
-      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add a student"
+      description="New students start with 100 Spend, 40 Save and 50 Grow tokens."
+    >
+      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`} noValidate>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">
-            Student Name
-          </label>
+          <label htmlFor="student-name" className="label">Name</label>
           <input
+            id="student-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.name ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
+            className="input"
+            aria-invalid={!!errors.name}
             placeholder="e.g. Alex"
+            autoFocus
           />
-          {errors.name && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.name}</p>
-          )}
+          {errors.name && <p className="text-negative text-sm mt-1.5">{errors.name}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">
-            PIN (4 digits, optional)
-          </label>
+          <label htmlFor="student-pin" className="label">PIN</label>
           <input
+            id="student-pin"
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
             maxLength={4}
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.pin ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
-            placeholder="Default: 1234"
+            className="input num tracking-[0.3em]"
+            aria-invalid={!!errors.pin}
+            placeholder="1234"
           />
-          {errors.pin && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.pin}</p>
+          {errors.pin ? (
+            <p className="text-negative text-sm mt-1.5">{errors.pin}</p>
+          ) : (
+            <p className="text-muted text-sm mt-1.5">Optional, 4 digits. Defaults to 1234.</p>
           )}
         </div>
 
-        <p className="text-sm text-gray-600">
-          New students start with 100 Spend tokens, 40 Save tokens, and 50 Grow tokens.
-        </p>
-
         <div className="flex gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+          <Button variant="secondary" onClick={onClose} fullWidth>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" className="flex-1">
-            Add Student
+          <Button type="submit" fullWidth>
+            Add student
           </Button>
         </div>
       </form>

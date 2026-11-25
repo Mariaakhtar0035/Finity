@@ -1,8 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { Lock, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
+import { Coin } from "@/components/ui/Coin";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SproutDoodle } from "@/components/ui/Doodles";
 import { getStudent } from "@/lib/store";
 import { getProjections, getGrowthPercentage } from "@/lib/growthCalculator";
 
@@ -13,230 +16,92 @@ export default function GrowTokensPage() {
   const student = getStudent(studentId);
   if (!student) return null;
 
-  const projections = getProjections(student.growTokens);
+  const now = student.growTokens;
+  const projections = getProjections(now);
+  const max = Math.max(projections.oneYear, 1);
+
+  const rows = [
+    { label: "Today", value: now, shade: "#d8f0e1" },
+    { label: "In 1 month", value: projections.oneMonth, shade: "#aee2c2" },
+    { label: "In 6 months", value: projections.sixMonths, shade: "#7fd0a1" },
+    { label: "In 1 year", value: projections.oneYear, shade: "#4fb87f" },
+  ];
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="font-display font-bold text-4xl text-gray-900 mb-2">
-          Your Money is Growing!
-        </h1>
-        <p className="text-xl text-gray-700">
-          If you wait... your tokens grow!
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Grow"
+        title="Patience, made visible"
+        description="Grow tokens are locked away and earn 2% every week. The longer you wait, the faster they grow."
+      />
+
+      {/* Balance */}
+      <Card className="overflow-hidden">
+        <div className="grid md:grid-cols-[1fr_auto]">
+          <div className="p-6 md:p-8">
+            <div className="flex items-center gap-3">
+              <Coin type="grow" size={40} />
+              <div>
+                <p className="text-sm text-muted">Grow balance</p>
+                <p className="display text-5xl num">{now}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-6">
+              <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-mint-soft text-sm">
+                <TrendingUp className="w-4 h-4" /> +2% every week
+              </span>
+              <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-paper text-sm text-ink-soft">
+                <Lock className="w-3.5 h-3.5" /> Locked while it grows
+              </span>
+            </div>
+          </div>
+          <div className="hidden md:flex items-end justify-center bg-mint-soft px-14 pt-6">
+            <SproutDoodle className="w-32 h-auto" />
+          </div>
+        </div>
+      </Card>
+
+      {/* Projections */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {[
+          { label: "1 month", value: projections.oneMonth },
+          { label: "6 months", value: projections.sixMonths },
+          { label: "1 year", value: projections.oneYear },
+        ].map((p) => (
+          <Card key={p.label} className="p-6">
+            <p className="text-sm text-muted">In {p.label}</p>
+            <p className="display text-5xl num mt-2">{p.value}</p>
+            <p className="text-sm mt-3">
+              <span className="text-positive font-medium num">+{getGrowthPercentage(now, p.value)}%</span>
+              <span className="text-muted"> · {p.value - now} more tokens</span>
+            </p>
+          </Card>
+        ))}
+      </div>
+
+      {/* Growth bars */}
+      <Card className="p-6 md:p-8">
+        <h2 className="font-display text-2xl tracking-tight">Watch it grow</h2>
+        <p className="text-muted mt-1 text-[15px]">
+          This is compound growth: your tokens earn tokens, and those new tokens earn even more.
         </p>
-      </div>
-
-      {/* Growth Explanation */}
-      <Card borderColor="border-amber-400" className="p-6 bg-amber-50">
-        <div className="flex items-start gap-4">
-          <div className="text-4xl">💡</div>
-          <div className="grow">
-            <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-              How Compound Growth Works
-            </h3>
-            <p className="text-gray-700">
-              Your Grow tokens earn 2% more every week. The longer you wait, the
-              more you&apos;ll have! This is called compound growth - your
-              tokens earn tokens, and those new tokens earn even more tokens!
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Projections - achievement cards */}
-      <div>
-        <h2 className="font-display font-bold text-3xl text-gray-900 mb-6 text-center">
-          Future Projections
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card
-            borderColor="border-emerald-500"
-            className="p-6 text-center bounce-in"
-          >
-            <div className="text-5xl mb-3">🥉</div>
-            <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-              In 1 Month
-            </h3>
-            <div className="flex justify-center">
-              <TokenDisplay
-                amount={projections.oneMonth}
-                type="grow"
-                size="lg"
-                showLabel={false}
-                centered
-              />
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="font-bold text-emerald-600">
-                +{getGrowthPercentage(student.growTokens, projections.oneMonth)}
-                %
-              </span>{" "}
-              growth
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              That&apos;s {projections.oneMonth - student.growTokens} more
-              tokens!
-            </p>
-          </Card>
-
-          <Card
-            borderColor="border-blue-500"
-            className="p-6 text-center bounce-in"
-          >
-            <div className="text-5xl mb-3">🥈</div>
-            <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-              In 6 Months
-            </h3>
-            <div className="flex justify-center">
-              <TokenDisplay
-                amount={projections.sixMonths}
-                type="grow"
-                size="lg"
-                showLabel={false}
-                centered
-              />
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="font-bold text-blue-600">
-                +
-                {getGrowthPercentage(student.growTokens, projections.sixMonths)}
-                %
-              </span>{" "}
-              growth
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              That&apos;s {projections.sixMonths - student.growTokens} more
-              tokens!
-            </p>
-          </Card>
-
-          <Card
-            borderColor="border-purple-500"
-            className="p-6 text-center bounce-in"
-          >
-            <div className="text-5xl mb-3">🥇</div>
-            <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-              In 1 Year
-            </h3>
-            <div className="flex justify-center">
-              <TokenDisplay
-                amount={projections.oneYear}
-                type="grow"
-                size="lg"
-                showLabel={false}
-                centered
-              />
-            </div>
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="font-bold text-purple-600">
-                +{getGrowthPercentage(student.growTokens, projections.oneYear)}%
-              </span>{" "}
-              growth
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              That&apos;s {projections.oneYear - student.growTokens} more
-              tokens!
-            </p>
-          </Card>
-        </div>
-      </div>
-
-      {/* Vault / Investment Board - Growth chart */}
-      <Card borderColor="border-gray-800" className="p-8 overflow-hidden">
-        <div className="border-4 border-amber-600 rounded-2xl p-6 bg-linear-to-b from-amber-50 to-amber-100">
-          <h3 className="font-display font-bold text-2xl text-gray-900 mb-2 text-center">
-            🏦 Investment Board
-          </h3>
-          <p className="text-center text-gray-600 mb-6">Growth over time</p>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="font-display font-bold text-gray-700">
-                  Now
-                </span>
-                <span className="font-display font-bold text-blue-600">
-                  {student.growTokens}
-                </span>
+        <div className="space-y-5 mt-8">
+          {rows.map((r, i) => (
+            <div key={r.label} className="grid grid-cols-[96px_1fr_56px] items-center gap-4">
+              <span className="text-sm text-ink-soft">{r.label}</span>
+              <div className="h-8 rounded-full bg-paper overflow-hidden">
+                <div
+                  className="h-full rounded-full border-[1.5px] border-ink bar-grow"
+                  style={{
+                    width: `${Math.max((r.value / max) * 100, 4)}%`,
+                    background: r.shade,
+                    animationDelay: `${i * 0.08}s`,
+                  }}
+                />
               </div>
-              <div
-                className="h-8 bg-blue-500 rounded-xl chart-fill"
-                style={{
-                  width:
-                    student.growTokens > 0
-                      ? `${(student.growTokens / projections.oneYear) * 100}%`
-                      : "1%",
-                }}
-              />
+              <span className="font-display text-xl num text-right">{r.value}</span>
             </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="font-display font-bold text-gray-700">
-                  1 Month
-                </span>
-                <span className="font-display font-bold text-emerald-600">
-                  {projections.oneMonth}
-                </span>
-              </div>
-              <div
-                className="h-8 bg-emerald-400 rounded-xl chart-fill"
-                style={{
-                  width: `${
-                    student.growTokens > 0
-                      ? (projections.oneMonth / projections.oneYear) * 100
-                      : 100
-                  }%`,
-                }}
-              />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="font-display font-bold text-gray-700">
-                  6 Months
-                </span>
-                <span className="font-display font-bold text-blue-600">
-                  {projections.sixMonths}
-                </span>
-              </div>
-              <div
-                className="h-8 bg-blue-400 rounded-xl chart-fill"
-                style={{
-                  width: `${
-                    student.growTokens > 0
-                      ? (projections.sixMonths / projections.oneYear) * 100
-                      : 100
-                  }%`,
-                }}
-              />
-            </div>
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="font-display font-bold text-gray-700">
-                  1 Year
-                </span>
-                <span className="font-display font-bold text-purple-600">
-                  {projections.oneYear}
-                </span>
-              </div>
-              <div
-                className="h-8 bg-purple-400 rounded-xl chart-fill"
-                style={{ width: "100%" }}
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Key Takeaway */}
-      <Card borderColor="border-purple-500" className="p-6 bg-purple-50">
-        <div className="text-center">
-          <div className="text-4xl mb-3">🌟</div>
-          <h3 className="font-display font-bold text-2xl text-gray-900 mb-2">
-            The Power of Patience
-          </h3>
-          <p className="text-lg text-gray-700">
-            The longer you wait, the more your tokens grow! This is why saving
-            for the future is so important.
-          </p>
+          ))}
         </div>
       </Card>
     </div>

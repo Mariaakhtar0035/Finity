@@ -7,10 +7,11 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { Segmented } from "@/components/ui/Feedback";
+import { TOKEN_META } from "@/components/ui/Coin";
 import type { BalanceHistoryEntry } from "@/types";
 
 interface GrowthComparisonChartProps {
@@ -18,22 +19,23 @@ interface GrowthComparisonChartProps {
   whatIfGrow: number[];
 }
 
-/**
- * Dual-line chart showing Spend vs Grow token history over time.
- * History is rendered by mapping each entry to chart data: week, spendBalance, growBalance.
- * Spend line (gold) shows ups and downs; Grow line (green) is smooth and steadily increasing.
- *
- * "What if" simulation: when "If I Grew Everything" is selected, overlays a dashed green line
- * computed by computeWhatIfGrow() - simulates 100% of earnings going to Grow with same
- * weekly earnings timing. See growthCalculator.computeWhatIfGrow for calculation details.
- */
-export function GrowthComparisonChart({
-  history,
-  whatIfGrow,
-}: GrowthComparisonChartProps) {
-  const [showWhatIf, setShowWhatIf] = useState(false);
+const SERIES = [
+  { key: "spend", label: "Spend", color: TOKEN_META.spend.chart, type: "linear" as const },
+  { key: "save", label: "Save", color: TOKEN_META.save.chart, type: "monotone" as const },
+  { key: "grow", label: "Grow", color: TOKEN_META.grow.chart, type: "monotone" as const },
+];
 
-  // Map history to chart data. Spend shows raw values (ups/downs); grow is smooth.
+const AXIS_STYLE = { fontFamily: "var(--font-jost), sans-serif", fontSize: 12, fill: "#9a9892" };
+
+/**
+ * Spend / Save / Grow balance history.
+ * "If I grew everything" overlays a dashed line computed by computeWhatIfGrow(),
+ * simulating 100% of earnings going to Grow with the same weekly timing.
+ */
+export function GrowthComparisonChart({ history, whatIfGrow }: GrowthComparisonChartProps) {
+  const [mode, setMode] = useState<"real" | "whatif">("real");
+  const showWhatIf = mode === "whatif";
+
   const chartData = history.map((h, i) => ({
     week: h.week,
     spend: h.spendBalance,
@@ -43,126 +45,93 @@ export function GrowthComparisonChart({
   }));
 
   return (
-    <div className="rounded-2xl border-2 border-gray-800 bg-linear-to-b from-amber-50 to-amber-100 p-6">
-      <h3 className="font-display font-bold text-2xl text-gray-900 mb-2 text-center">
-        Your Money Story
-      </h3>
-
-      {/* Time Machine toggle: My Real History vs If I Grew Everything */}
-      <div
-        className="flex flex-wrap justify-center gap-2 mb-6"
-        role="tablist"
-        aria-label="Time Machine: show real history or what-if scenario"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!showWhatIf}
-          aria-pressed={!showWhatIf}
-          onClick={() => setShowWhatIf(false)}
-          className={`px-4 py-2 rounded-xl font-display font-bold text-sm transition-all border-2 ${
-            !showWhatIf
-              ? "bg-emerald-500 text-white border-emerald-600 shadow-md"
-              : "bg-white text-gray-700 border-gray-300 hover:border-emerald-400"
-          }`}
-        >
-          My Real History
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={showWhatIf}
-          aria-pressed={showWhatIf}
-          onClick={() => setShowWhatIf(true)}
-          className={`px-4 py-2 rounded-xl font-display font-bold text-sm transition-all border-2 ${
-            showWhatIf
-              ? "bg-emerald-500 text-white border-emerald-600 shadow-md"
-              : "bg-white text-gray-700 border-gray-300 hover:border-emerald-400"
-          }`}
-        >
-          If I Grew Everything
-        </button>
+    <div>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div>
+          <h2 className="font-display text-2xl tracking-tight">Your money story</h2>
+          <p className="text-muted mt-1 text-[15px]">
+            {showWhatIf
+              ? "The dashed line shows what would happen if every token went to Grow."
+              : "How each of your balances has changed week by week."}
+          </p>
+        </div>
+        <Segmented
+          ariaLabel="Chart view"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "real", label: "My history" },
+            { value: "whatif", label: "If I grew everything" },
+          ]}
+        />
       </div>
 
-      {/* Recharts line chart: Spend (gold), Grow (green), What if (dashed when toggled) */}
-      <div className="h-[300px] w-full min-h-[250px]">
+      <div className="flex flex-wrap gap-x-5 gap-y-2 mb-4 text-sm text-ink-soft">
+        {SERIES.map((s) => (
+          <span key={s.key} className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ background: s.color }} />
+            {s.label}
+          </span>
+        ))}
+        {showWhatIf && (
+          <span className="inline-flex items-center gap-2">
+            <span className="w-4 border-t-2 border-dashed" style={{ borderColor: "#141414" }} />
+            What if
+          </span>
+        )}
+      </div>
+
+      <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(0,0,0,0.08)"
-              vertical={false}
-            />
+          <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <CartesianGrid stroke="#ece9e3" vertical={false} />
             <XAxis
               dataKey="week"
-              stroke="#374151"
-              style={{ fontFamily: "var(--font-fredoka), sans-serif", fontWeight: 600 }}
-              tick={{ fontSize: 12 }}
-              tickFormatter={(v) => `Week ${v}`}
+              tick={AXIS_STYLE}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `Wk ${v}`}
+              dy={8}
             />
             <YAxis
-              stroke="#374151"
-              style={{ fontFamily: "var(--font-fredoka), sans-serif", fontWeight: 600 }}
-              tick={{ fontSize: 12 }}
+              tick={AXIS_STYLE}
+              axisLine={false}
+              tickLine={false}
               tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : String(v))}
             />
             <Tooltip
+              cursor={{ stroke: "#d5d2ca" }}
               contentStyle={{
-                borderRadius: 12,
-                border: "2px solid #d1d5db",
-                fontFamily: "var(--font-nunito), sans-serif",
+                borderRadius: 16,
+                border: "1px solid #e6e4de",
+                boxShadow: "0 18px 40px -16px rgba(20,20,20,0.22)",
+                fontFamily: "var(--font-jost), sans-serif",
+                fontSize: 14,
               }}
               labelFormatter={(label) => `Week ${label}`}
             />
-            <Legend
-              wrapperStyle={{ fontFamily: "var(--font-fredoka), sans-serif", fontWeight: 600 }}
-              iconType="line"
-              iconSize={12}
-            />
-            {/* Spend: gold, linear (ups and downs visible) */}
-            <Line
-              type="linear"
-              dataKey="spend"
-              name="🪙 Spend"
-              stroke="#eab308"
-              strokeWidth={3}
-              dot={false}
-              isAnimationActive={true}
-              connectNulls
-            />
-            {/* Save: sky blue, steady */}
-            <Line
-              type="monotone"
-              dataKey="save"
-              name="💰 Save"
-              stroke="#0ea5e9"
-              strokeWidth={3}
-              dot={false}
-              isAnimationActive={true}
-              connectNulls
-            />
-            {/* Grow: green, smooth and steadily increasing */}
-            <Line
-              type="monotone"
-              dataKey="grow"
-              name="🌱 Grow"
-              stroke="#10b981"
-              strokeWidth={3}
-              dot={false}
-              isAnimationActive={true}
-              connectNulls
-            />
-            {/* What if: dashed green overlay when toggle selected */}
+            {SERIES.map((s) => (
+              <Line
+                key={s.key}
+                type={s.type}
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.color}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+                connectNulls
+              />
+            ))}
             {showWhatIf && (
               <Line
                 type="monotone"
                 dataKey="whatIf"
-                name="What if?"
-                stroke="#059669"
+                name="What if"
+                stroke="#141414"
                 strokeWidth={2}
-                strokeDasharray="5 5"
+                strokeDasharray="6 6"
                 dot={false}
-                isAnimationActive={true}
                 connectNulls
               />
             )}

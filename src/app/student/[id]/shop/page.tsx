@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
-import { TokenChip } from "@/components/ui/TokenChip";
+import { Coin } from "@/components/ui/Coin";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { BagDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import { getRewards, getStudent, purchaseReward } from "@/lib/store";
+import { rewardTint } from "@/lib/palette";
+import { RewardIcon } from "@/components/RewardIcon";
 
 export default function RewardShopPage() {
   const params = useParams();
@@ -16,9 +20,7 @@ export default function RewardShopPage() {
   const studentId = params.id as string;
   const [student, setStudent] = useState(getStudent(studentId));
   const rewards = getRewards();
-  const [showModal, setShowModal] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalTitle, setModalTitle] = useState("");
+  const [modal, setModal] = useState<{ title: string; message: string; success: boolean } | null>(null);
   const [showSparkle, setShowSparkle] = useState(false);
 
   if (!student) return null;
@@ -29,174 +31,124 @@ export default function RewardShopPage() {
     if (result) {
       setShowSparkle(true);
       setStudent(result.student);
-      setModalTitle("Purchase Successful! 🎉");
-      setModalMessage(
-        `You bought ${result.reward.title}! You now have ${result.student.spendTokens} Spend tokens left.`
-      );
-      setShowModal(true);
-
-      setTimeout(() => {
-        router.refresh();
-      }, 100);
+      setModal({
+        success: true,
+        title: `${result.reward.title} is yours`,
+        message: `You have ${result.student.spendTokens} Spend tokens left.`,
+      });
+      setTimeout(() => router.refresh(), 100);
     } else {
       const reward = rewards.find((r) => r.id === rewardId);
-      if (reward?.soldOut) {
-        setModalTitle("Sold Out!");
-        setModalMessage(
-          "Sorry, this reward is currently sold out. Check back later!"
-        );
-      } else {
-        setModalTitle("Not Enough Tokens!");
-        setModalMessage(
-          "You don't have enough Spend tokens for this reward. Complete more missions to earn tokens!"
-        );
-      }
-      setShowModal(true);
+      setModal(
+        reward?.soldOut
+          ? { success: false, title: "Sold out", message: "This reward is sold out right now. Check back later!" }
+          : {
+              success: false,
+              title: "Not enough tokens",
+              message: "You don't have enough Spend tokens for this yet. Complete more missions to earn more.",
+            },
+      );
     }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="font-display font-bold text-4xl text-gray-900 mb-2">
-          Reward Shop
-        </h1>
-        <p className="text-xl text-gray-700">
-          Spend your tokens on awesome game perks!
-        </p>
-      </div>
-
-      {/* Current Balance */}
-      <Card borderColor="border-amber-500" className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-bold text-xl text-gray-800 mb-2">
-              Your Spend Tokens
-            </h3>
-            <p className="text-sm text-gray-600 font-medium">
-              Available to spend now
-            </p>
+    <div>
+      <PageHeader
+        eyebrow="Reward shop"
+        title="Treat yourself, thoughtfully"
+        description="Use your Spend tokens on classroom perks. Save and Grow tokens stay put."
+        action={
+          <div className="flex items-center gap-3 bg-surface border border-line rounded-full pl-2 pr-5 py-2">
+            <Coin type="spend" size={36} />
+            <div className="leading-tight">
+              <p className="text-xs text-muted">Spend balance</p>
+              <p className="font-display text-2xl num">{student.spendTokens}</p>
+            </div>
           </div>
-          <TokenDisplay
-            amount={student.spendTokens}
-            type="spend"
-            size="lg"
-            showLabel={false}
-          />
-        </div>
-      </Card>
+        }
+      />
 
-      {/* Rewards Grid - collectible items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {rewards.map((reward) => {
           const canAfford = student.spendTokens >= reward.cost;
-          const alreadyPurchased = student.purchasedRewards.includes(reward.id);
+          const owned = student.purchasedRewards.includes(reward.id);
+          const shortBy = reward.cost - student.spendTokens;
 
           return (
-            <Card
-              key={reward.id}
-              borderColor={
-                reward.soldOut
-                  ? "border-gray-400"
-                  : canAfford
-                  ? "border-emerald-500"
-                  : "border-amber-400"
-              }
-              className={`p-6 relative overflow-hidden ${reward.soldOut ? "opacity-75" : ""}`}
-            >
-              {/* Sold Out diagonal banner */}
-              {reward.soldOut && (
-                <div
-                  className="absolute top-4 right-4 -rotate-12 bg-red-500 text-white font-display font-bold text-lg px-4 py-2 rounded-lg shadow-md border-2 border-red-700"
-                  aria-label="Sold out"
-                >
-                  SOLD OUT
-                </div>
-              )}
-
-              <div className="text-center mb-4">
-                <div className="text-7xl mb-3">{reward.icon}</div>
-                <h3 className="font-display font-bold text-2xl text-gray-900 mb-2">
-                  {reward.title}
-                </h3>
-                <p className="text-gray-700 mb-4">{reward.description}</p>
+            <Card key={reward.id} className={`flex flex-col overflow-hidden ${reward.soldOut ? "opacity-60" : "lift"}`}>
+              <div
+                className="m-2 mb-0 rounded-[1.25rem] h-36 flex items-center justify-center relative"
+                style={{ background: rewardTint(reward.id) }}
+              >
+                <span className="w-16 h-16 rounded-full bg-surface border-2 border-ink flex items-center justify-center">
+                  <RewardIcon icon={reward.icon} className="w-7 h-7" />
+                </span>
+                {reward.soldOut && (
+                  <span className="absolute top-3 right-3 h-6 px-2.5 rounded-full bg-ink text-white text-xs font-medium flex items-center">
+                    Sold out
+                  </span>
+                )}
+                {owned && !reward.soldOut && (
+                  <span className="absolute top-3 right-3 h-6 px-2.5 rounded-full bg-surface text-xs font-medium flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Owned
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-center p-4 bg-amber-50 rounded-2xl border-2 border-amber-200">
-                  <span className="font-display font-bold text-gray-700 mr-3">
-                    Cost:
+              <div className="flex-1 flex flex-col p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-lg font-medium leading-snug">{reward.title}</h3>
+                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                    <Coin type="spend" size={20} />
+                    <span className="font-display text-xl num">{reward.cost}</span>
                   </span>
-                  <TokenChip amount={reward.cost} type="spend" size="md" />
                 </div>
+                <p className="text-[15px] text-muted mt-1 leading-relaxed">{reward.description}</p>
 
-                {reward.soldOut ? (
-                  <div className="text-center py-3 bg-gray-200 rounded-2xl border-2 border-gray-300">
-                    <span className="font-display font-bold text-gray-600">
-                      😔 Sold Out
-                    </span>
-                  </div>
-                ) : alreadyPurchased ? (
-                  <div className="text-center py-3 bg-emerald-100 rounded-2xl border-2 border-emerald-300">
-                    <span className="font-display font-bold text-emerald-800">
-                      ✓ Already Purchased
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    <Button
-                      variant={canAfford ? "success" : "secondary"}
-                      onClick={() => handlePurchase(reward.id)}
-                      disabled={!canAfford}
-                      className="w-full"
-                    >
-                      {canAfford ? "BUY" : "Not Enough Tokens"}
+                <div className="mt-auto pt-5">
+                  {reward.soldOut ? (
+                    <Button variant="secondary" fullWidth disabled>
+                      Sold out
                     </Button>
-                    {!canAfford && (
-                      <div className="text-center py-2 px-3 bg-red-50 rounded-xl border-2 border-red-200">
-                        <span className="font-display font-bold text-red-700 text-sm">
-                          NOT ENOUGH TOKENS
-                        </span>
-                        <p className="text-xs text-gray-600 mt-1">
-                          You need {reward.cost - student.spendTokens} more
-                        </p>
+                  ) : owned ? (
+                    <Button variant="secondary" fullWidth disabled>
+                      <Check className="w-4 h-4" /> Purchased
+                    </Button>
+                  ) : canAfford ? (
+                    <Button fullWidth onClick={() => handlePurchase(reward.id)}>
+                      Buy for {reward.cost}
+                    </Button>
+                  ) : (
+                    <div>
+                      <Button variant="secondary" fullWidth disabled>
+                        {shortBy} more tokens needed
+                      </Button>
+                      <div className="h-1.5 rounded-full bg-paper mt-3 overflow-hidden" aria-hidden>
+                        <div
+                          className="h-full rounded-full bg-peach-deep"
+                          style={{ width: `${Math.min(100, (student.spendTokens / reward.cost) * 100)}%` }}
+                        />
                       </div>
-                    )}
-                  </>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           );
         })}
       </div>
 
-      {/* Info Card */}
-      <Card borderColor="border-purple-500" className="p-6 bg-purple-50">
-        <div className="flex items-start gap-4">
-          <div className="text-4xl">💡</div>
-          <div>
-            <h3 className="font-display font-bold text-xl text-gray-900 mb-2">
-              Remember!
-            </h3>
-            <p className="text-gray-700">
-              You can only spend your Spend tokens. Your Grow tokens are locked
-              and growing for your future! Complete more missions to earn
-              tokens.
-            </p>
-          </div>
-        </div>
-      </Card>
-
       <SuccessSparkle show={showSparkle} onComplete={() => setShowSparkle(false)} />
 
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={modalTitle}
+        isOpen={!!modal}
+        onClose={() => setModal(null)}
+        title={modal?.title}
+        description={modal?.message}
+        illustration={modal?.success ? <BagDoodle className="w-20 h-auto" /> : undefined}
       >
-        <p className="text-lg text-gray-700 mb-6">{modalMessage}</p>
-        <Button onClick={() => setShowModal(false)} className="w-full">
-          Got it!
+        <Button onClick={() => setModal(null)} fullWidth>
+          Got it
         </Button>
       </Modal>
     </div>

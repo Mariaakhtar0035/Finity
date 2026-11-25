@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Reward } from "@/types";
+import { REWARD_ICONS, REWARD_ICON_KEYS, RewardIcon } from "@/components/RewardIcon";
 
-const ICON_OPTIONS = ["⏰", "💡", "📝", "🎁", "⭐", "🏆", "🎯", "🌟", "🎨", "📚"];
 
 interface RewardFormModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export function RewardFormModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [cost, setCost] = useState(50);
-  const [icon, setIcon] = useState("🎁");
+  const [icon, setIcon] = useState("gift");
   const [soldOut, setSoldOut] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; description?: string; cost?: string }>({});
   const [shake, setShake] = useState(false);
@@ -34,7 +34,7 @@ export function RewardFormModal({
       setTitle(reward?.title ?? "");
       setDescription(reward?.description ?? "");
       setCost(reward?.cost ?? 50);
-      setIcon(reward?.icon ?? "🎁");
+      setIcon(reward?.icon ?? "gift");
       setSoldOut(reward?.soldOut ?? false);
       setErrors({});
     }
@@ -59,104 +59,97 @@ export function RewardFormModal({
       title: title.trim(),
       description: description.trim(),
       cost: costNum,
-      icon: icon || "🎁",
+      icon: icon || "gift",
       soldOut,
     });
     onClose();
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEdit ? "Edit Reward" : "Add Reward"}
-    >
-      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? "Edit reward" : "New reward"}>
+      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`} noValidate>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+          <label htmlFor="reward-title" className="label">Title</label>
           <input
+            id="reward-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.title ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
-            placeholder="e.g. Extra Deadline Extension"
+            className="input"
+            aria-invalid={!!errors.title}
+            placeholder="e.g. Homework pass"
           />
-          {errors.title && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.title}</p>
-          )}
+          {errors.title && <p className="text-negative text-sm mt-1.5">{errors.title}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+          <label htmlFor="reward-description" className="label">Description</label>
           <textarea
+            id="reward-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display ${
-              errors.description ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
+            className="input resize-none"
+            aria-invalid={!!errors.description}
             placeholder="What does this reward do?"
           />
-          {errors.description && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.description}</p>
-          )}
+          {errors.description && <p className="text-negative text-sm mt-1.5">{errors.description}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Token Cost</label>
+          <label htmlFor="reward-cost" className="label">Price in Spend tokens</label>
           <input
+            id="reward-cost"
             type="number"
             min={1}
             value={cost}
             onChange={(e) => setCost(Number(e.target.value) || 0)}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.cost ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
+            className="input num"
+            aria-invalid={!!errors.cost}
           />
-          {errors.cost && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.cost}</p>
-          )}
+          {errors.cost && <p className="text-negative text-sm mt-1.5">{errors.cost}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Icon</label>
+          <p className="label">Icon</p>
           <div className="flex flex-wrap gap-2">
-            {ICON_OPTIONS.map((opt) => (
+            {REWARD_ICON_KEYS.map((opt) => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setIcon(opt)}
-                className={`w-12 h-12 text-2xl rounded-xl border-2 transition-all hover:-translate-y-0.5 ${
-                  icon === opt ? "border-gray-800 shadow-md bg-amber-50" : "border-gray-300 bg-gray-50"
+                aria-pressed={icon === opt}
+                aria-label={REWARD_ICONS[opt].label}
+                title={REWARD_ICONS[opt].label}
+                className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-colors ${
+                  icon === opt ? "border-ink bg-paper ring-1 ring-ink" : "border-line text-ink-soft hover:border-line-strong"
                 }`}
               >
-                {opt}
+                <RewardIcon icon={opt} className="w-5 h-5" />
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <label className="flex items-center justify-between gap-4 rounded-2xl border border-line px-4 py-3 cursor-pointer">
+          <span>
+            <span className="block font-medium text-[15px]">Sold out</span>
+            <span className="block text-sm text-muted">Students can&apos;t buy it while this is on.</span>
+          </span>
           <input
             type="checkbox"
-            id="soldOut"
             checked={soldOut}
             onChange={(e) => setSoldOut(e.target.checked)}
-            className="w-5 h-5 rounded border-2 border-gray-300"
+            className="w-5 h-5 accent-ink"
           />
-          <label htmlFor="soldOut" className="text-sm font-bold text-gray-700">
-            Sold Out (students cannot purchase)
-          </label>
-        </div>
+        </label>
 
         <div className="flex gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+          <Button variant="secondary" onClick={onClose} fullWidth>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" className="flex-1">
-            {isEdit ? "Save Reward" : "Add Reward"}
+          <Button type="submit" fullWidth>
+            {isEdit ? "Save changes" : "Add reward"}
           </Button>
         </div>
       </form>

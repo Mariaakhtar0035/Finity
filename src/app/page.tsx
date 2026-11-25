@@ -1,204 +1,240 @@
 "use client";
 
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
+import { Coin, TOKEN_META, TokenType } from "@/components/ui/Coin";
+import { Logo } from "@/components/ui/Logo";
+import {
+  CoinStackDoodle,
+  JarDoodle,
+  PencilDoodle,
+  PiggyDoodle,
+  SproutDoodle,
+  StarDoodle,
+} from "@/components/ui/Doodles";
 import { StudentAvatar } from "@/components/StudentAvatar";
+import { MrsPennyworthAvatar, PennyworthPortrait } from "@/components/MrsPennyworthAvatar";
 import { getStudents } from "@/lib/store";
-import { useEffect, useState } from "react";
-import SuccessMoneySprinkle from "@/components/SuccessMoneySprinkle";
 
 function scrollToChoosePlayer() {
   document.getElementById("choose-player")?.scrollIntoView({ behavior: "smooth" });
 }
 
-/** green, dark blue, light blue, red, yellow, orange, brown, purple */
-const FEATURE_COLORS = [
-  "bg-green-100 text-black",
-  "bg-blue-800 text-white",
-  "bg-sky-200 text-black",
-  "bg-red-100 text-black",
-  "bg-amber-100 text-black",
-  "bg-orange-100 text-black",
-  "bg-amber-200 text-black",
-  "bg-purple-100 text-black",
-] as const;
+const STATS = [
+  { value: "64%", label: "of Canadians say they never learned financial literacy in school." },
+  { value: "84%", label: "believe learning it earlier would have reduced their financial stress." },
+  { value: "2026", label: "Financial literacy becomes part of the Grade 10 math graduation requirement." },
+];
+
+const TOKENS: { type: TokenType; title: string; body: string }[] = [
+  {
+    type: "spend",
+    title: "Spend",
+    body: "Tokens to use now in the class reward shop. Kids learn that every choice has a price.",
+  },
+  {
+    type: "save",
+    title: "Save",
+    body: "Set aside toward a goal they pick themselves, and watch a progress bar fill up.",
+  },
+  {
+    type: "grow",
+    title: "Grow",
+    body: "Locked away and compounding 2% every week. Patience, made visible.",
+  },
+];
 
 const FEATURES = [
   {
-    title: "Mission Cards",
-    description: "Complete fun tasks, earn rewards, and collect mission cards like a real board game.",
-    icon: "🃏",
+    title: "A mission marketplace",
+    body: "Students request classroom jobs. When a mission is popular, its reward drops, so supply and demand becomes something they feel.",
   },
   {
-    title: "Spend, Save & Grow Tokens",
-    description: "Earn Spend tokens for rewards, Save tokens for goals, and Grow tokens that multiply over time.",
-    icon: "🪙",
+    title: "A reward shop",
+    body: "Real perks, real prices. Deciding between now and later becomes a daily habit instead of a one-time lesson.",
   },
   {
-    title: "Teacher-Assigned Missions",
-    description: "Your teacher picks missions for you. Complete them and get approved to earn tokens!",
-    icon: "👩‍🏫",
-  },
-  {
-    title: "AI-Powered Insights",
-    description: "Get friendly tips and explanations about saving, spending, and how money grows.",
-    icon: "✨",
+    title: "A teacher dashboard",
+    body: "Create missions, approve completed work and see every student's balances at a glance.",
   },
 ];
 
 export default function HomePage() {
   const students = getStudents();
-  const [showSprinkle, setShowSprinkle] = useState(true);
 
   return (
-    <div className="min-h-screen landing-board">
-      {showSprinkle && <SuccessMoneySprinkle />}
+    <div className="min-h-screen bg-paper overflow-x-hidden">
+      {/* ========== NAV ========== */}
+      <div className="sticky top-0 z-50 px-3 sm:px-6 pt-3">
+        <nav className="max-w-6xl mx-auto bg-surface/95 backdrop-blur rounded-2xl border border-line shadow-soft h-16 px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <Logo />
+            <div className="hidden md:flex items-center gap-6 text-[15px] text-ink-soft">
+              <a href="#how-it-works" className="hover:text-ink">How it works</a>
+              <a href="#features" className="hover:text-ink">Features</a>
+              <a href="#pennyworth" className="hover:text-ink">Mrs. Pennyworth</a>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/teacher/login" className="hidden sm:block">
+              <Button variant="secondary" size="sm">Teacher login</Button>
+            </Link>
+            <Button size="sm" onClick={scrollToChoosePlayer}>Start playing</Button>
+          </div>
+        </nav>
+      </div>
 
       {/* ========== HERO ========== */}
-      <section className="relative px-4 pt-14 pb-20 md:pt-24 md:pb-28 overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-14">
-          <div className="text-center md:text-left md:max-w-2xl">
-            <h1 className="font-display font-bold text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-gray-900 mb-6 md:mb-7 leading-tight tracking-tight">
-              Welcome to{" "}
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-500 via-orange-500 to-rose-500">
-                Finity!
-              </span>
-            </h1>
-            <p className="text-2xl md:text-3xl text-gray-600 mb-10 font-medium leading-relaxed max-w-xl">
-              Complete missions, earn tokens, and watch your money grow!
-            </p>
-            <Button
-              variant="primary"
-              onClick={scrollToChoosePlayer}
-              className="text-xl px-10 py-4 rounded-xl shadow-lg token-spin-hover w-full sm:w-auto"
-            >
-              Join the Game
+      <section className="relative pt-20 md:pt-28">
+        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+          <p className="font-display text-lg md:text-xl text-muted mb-5">A classroom economy for kids</p>
+          <h1 className="display text-[56px] sm:text-[80px] md:text-[112px] text-ink">
+            Money lessons kids actually remember
+          </h1>
+          <p className="text-lg md:text-xl text-ink-soft max-w-2xl mx-auto mt-8 leading-relaxed">
+            Students earn, save and grow tokens by doing real classroom missions, building money
+            habits long before the stakes are real.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
+            <Button size="lg" onClick={scrollToChoosePlayer}>
+              Join your class <ArrowRight className="w-4 h-4" />
             </Button>
+            <Link href="/teacher/login">
+              <Button size="lg" variant="secondary">I&apos;m a teacher</Button>
+            </Link>
           </div>
-          <div className="flex justify-center items-center">
-            <img 
-              src="/hero-placeholder.png" 
-              alt="Finity hero illustration" 
-              className="dice-bounce token-spin-hover w-[32rem] h-[32rem] md:w-[36rem] md:h-[36rem] object-contain"
-            />
-          </div>
+        </div>
+
+        {/* Doodle tabletop */}
+        <div className="relative h-[220px] md:h-[300px] mt-10 md:mt-6 pointer-events-none select-none" aria-hidden>
+          <PiggyDoodle className="absolute bottom-0 left-[2%] md:left-[6%] w-[170px] md:w-[250px] bob" style={{ ["--r" as string]: "-4deg" }} />
+          <StarDoodle className="absolute top-2 left-[30%] w-10 md:w-14 hidden sm:block bob" style={{ animationDelay: "1.2s", ["--r" as string]: "12deg" }} />
+          <PencilDoodle className="absolute bottom-6 left-[34%] w-[180px] md:w-[240px] hidden md:block" />
+          <CoinStackDoodle className="absolute bottom-0 left-1/2 -translate-x-1/2 md:left-[56%] md:translate-x-0 w-[120px] md:w-[160px] bob" style={{ animationDelay: "0.6s" }} />
+          <StarDoodle fill="#f4e297" className="absolute top-10 right-[24%] w-8 md:w-12 hidden sm:block bob" style={{ animationDelay: "2s", ["--r" as string]: "-10deg" }} />
+          <SproutDoodle className="absolute bottom-0 right-[3%] md:right-[8%] w-[120px] md:w-[160px] bob" style={{ animationDelay: "1.6s", ["--r" as string]: "3deg" }} />
         </div>
       </section>
 
-      {/* ========== FEATURES (Flat print-style cards) ========== */}
-      <section className="px-4 py-16 md:py-24">
+      {/* ========== STATS ========== */}
+      <section className="px-6 pb-20 md:pb-28">
+        <div className="max-w-6xl mx-auto bg-surface rounded-[2rem] border border-line grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-line">
+          {STATS.map((s) => (
+            <div key={s.value} className="p-8 md:p-10">
+              <p className="display text-6xl md:text-7xl text-ink">{s.value}</p>
+              <p className="text-muted mt-4 leading-relaxed">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========== HOW IT WORKS ========== */}
+      <section id="how-it-works" className="px-6 pb-20 md:pb-28 scroll-mt-24">
         <div className="max-w-6xl mx-auto">
-          <h2 className="font-bold uppercase text-3xl md:text-4xl text-gray-900 text-center mb-4">
-            How It Works
-          </h2>
-          <p className="text-center text-gray-600 text-lg mb-12 max-w-2xl mx-auto">
-            Play the game. Earn tokens. Learn how money works.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((feature, index) => (
-              <div
-                key={feature.title}
-                className="flex flex-col min-h-[220px] w-full border-2 border-black bg-white"
-              >
-                {/* Inner double-border panel */}
-                <div className="flex flex-col flex-1 min-h-0 m-1 border border-black bg-white">
-                  {/* Header - muted pastel, thick black bottom border */}
-                  <div
-                    className={`shrink-0 px-4 py-3 border-b-2 border-black ${FEATURE_COLORS[index % FEATURE_COLORS.length]}`}
-                  >
-                    <div className="text-center font-bold uppercase text-sm tracking-wide leading-tight">
-                      {feature.title}
-                    </div>
-                  </div>
-                  {/* Body */}
-                  <div className="flex-1 flex flex-col min-h-0 p-4 border-b border-black">
-                    <div className="flex justify-between items-start gap-4 text-sm">
-                      <span className="uppercase font-bold shrink-0">About</span>
-                      <span className="text-right font-normal">{feature.description}</span>
-                    </div>
-                  </div>
-                  {/* Center emphasis - icon */}
-                  <div className="py-6 px-4 text-center border-b-2 border-black bg-white">
-                    <span className="text-4xl" aria-hidden>
-                      {feature.icon}
-                    </span>
-                  </div>
-                </div>
+          <div className="max-w-2xl mb-12">
+            <p className="font-display text-lg text-muted mb-3">How it works</p>
+            <h2 className="display text-5xl md:text-6xl text-ink">Three tokens. One big idea.</h2>
+            <p className="text-lg text-ink-soft mt-5 leading-relaxed">
+              Every reward is split three ways, the same way grown-ups think about a paycheque.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {TOKENS.map((t) => (
+              <div key={t.type} className={`rounded-[2rem] p-8 ${TOKEN_META[t.type].soft}`}>
+                <Coin type={t.type} size={72} />
+                <h3 className="font-display text-3xl tracking-tight mt-8">{t.title}</h3>
+                <p className="text-ink-soft mt-3 leading-relaxed">{t.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ========== GAMIFICATION SECTION ========== */}
-      <section className="px-4 py-16 md:py-24 bg-linear-to-b from-amber-50/80 to-transparent">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="font-bold uppercase text-3xl md:text-4xl text-gray-900 text-center mb-4">
-            Play the Economy
-          </h2>
-          <p className="text-center text-gray-600 text-lg mb-12 max-w-2xl mx-auto">
-            Tokens, rewards, and growth—all in one game.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="landing-card-hover rounded-2xl border-2 border-amber-200 bg-amber-50/80 p-6 text-center shadow-lg">
-              <div className="text-5xl mb-3">🏆</div>
-              <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Earn Tokens</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Complete missions and get Spend + Save + Grow tokens. Use them in the reward shop!
-              </p>
-            </div>
-            <div className="landing-card-hover rounded-2xl border-2 border-blue-200 bg-blue-50/80 p-6 text-center shadow-lg">
-              <div className="text-5xl mb-3">📈</div>
-              <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Grow Your Vault</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Put tokens in Save and Grow to watch them build over time—like real savings.
-              </p>
-            </div>
-            <div className="landing-card-hover rounded-2xl border-2 border-emerald-200 bg-emerald-50/80 p-6 text-center shadow-lg">
-              <div className="text-5xl mb-3">✅</div>
-              <h3 className="font-display font-bold text-xl text-gray-900 mb-2">Complete & Collect</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Finish missions, get teacher approval, and unlock rewards. Simple and fun!
-              </p>
+      {/* ========== FEATURES ========== */}
+      <section id="features" className="px-6 pb-20 md:pb-28 scroll-mt-24">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1.1fr] gap-12 md:gap-20 items-center">
+          <div className="relative bg-butter-soft rounded-[2rem] aspect-[4/3.4] flex items-end justify-center overflow-hidden order-last md:order-first">
+            <JarDoodle className="absolute left-[12%] bottom-[14%] w-[30%] bob" />
+            <CoinStackDoodle className="absolute right-[12%] bottom-[14%] w-[34%] bob" style={{ animationDelay: "1s" }} />
+            <StarDoodle className="absolute top-[14%] left-[44%] w-[12%] bob" style={{ animationDelay: "0.5s" }} />
+          </div>
+          <div>
+            <p className="font-display text-lg text-muted mb-3">Learn by doing</p>
+            <h2 className="display text-5xl md:text-6xl text-ink">Real decisions, every single day</h2>
+            <div className="mt-10 divide-y divide-line border-y border-line">
+              {FEATURES.map((f, i) => (
+                <div key={f.title} className="py-6 flex gap-5">
+                  <span className="font-display text-xl text-faint num w-6 shrink-0">{i + 1}</span>
+                  <div>
+                    <h3 className="text-lg font-medium text-ink">{f.title}</h3>
+                    <p className="text-muted mt-1 leading-relaxed">{f.body}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ========== CHOOSE YOUR PLAYER (CTA target) ========== */}
-      <section id="choose-player" className="px-4 py-16 md:py-24 scroll-mt-8">
+      {/* ========== MRS. PENNYWORTH ========== */}
+      <section id="pennyworth" className="px-3 sm:px-6 pb-20 md:pb-28 scroll-mt-24">
+        <div className="max-w-6xl mx-auto rounded-[2rem] overflow-hidden bg-[linear-gradient(120deg,#3f4160_0%,#62668f_55%,#9097c8_100%)] text-white">
+          <div className="grid md:grid-cols-2 gap-10 p-8 md:p-16 items-center">
+            <div>
+              <PennyworthPortrait className="w-24 h-24 md:w-28 md:h-28 rounded-full border-[3px] border-ink mb-8" />
+              <p className="font-display text-lg text-white/70 mb-3">Meet Mrs. Pennyworth</p>
+              <h2 className="display text-5xl md:text-6xl">A money coach who explains the why</h2>
+              <p className="text-lg text-white/80 mt-6 leading-relaxed max-w-md">
+                Mrs. Pennyworth is an AI guide built into every screen. She answers questions in
+                kid-friendly language and offers options, not orders.
+              </p>
+            </div>
+            <div className="bg-surface text-ink rounded-[1.75rem] p-5 shadow-lift max-w-md md:ml-auto w-full">
+              <div className="flex items-center gap-3 pb-4 border-b border-line">
+                <MrsPennyworthAvatar size="md" className="w-11! h-11!" />
+                <div>
+                  <p className="font-medium leading-tight">Mrs. Pennyworth</p>
+                  <p className="text-sm text-muted">Your money coach</p>
+                </div>
+              </div>
+              <div className="space-y-3 pt-4 text-[15px]">
+                <div className="flex justify-end">
+                  <p className="bg-ink text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%]">
+                    Why did my mission reward go down?
+                  </p>
+                </div>
+                <div className="flex">
+                  <p className="bg-paper rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[88%] leading-relaxed">
+                    Lots of classmates wanted that mission! When more people want the same thing,
+                    each one is worth a little less. That&apos;s supply and demand.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== CHOOSE YOUR PLAYER ========== */}
+      <section id="choose-player" className="px-6 pb-24 md:pb-32 scroll-mt-24">
         <div className="max-w-6xl mx-auto">
-          <h2 className="font-bold uppercase text-3xl md:text-4xl text-gray-900 text-center mb-4">
-            Choose Your Player
-          </h2>
-          <p className="text-xl text-gray-700 text-center mb-12">
-            Pick your character and join the game!
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center mb-12">
+            <h2 className="display text-5xl md:text-6xl text-ink">Who&apos;s playing today?</h2>
+            <p className="text-lg text-muted mt-4">Pick your name to sign in with your PIN.</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {students.map((student) => (
               <Link
                 key={student.id}
                 href={`/student/${student.id}/login`}
-                className="landing-card-hover block"
+                className="group bg-surface rounded-[var(--radius-card)] border border-line p-6 md:p-8 flex flex-col items-center text-center lift"
               >
-                <Card
-                  borderColor="border-blue-200"
-                  className="p-8 text-center h-full"
-                >
-                  <div className="flex justify-center mb-4">
-                    <StudentAvatar
-                      studentId={student.id}
-                      studentName={student.name}
-                      size="lg"
-                      palette="pastel"
-                    />
-                  </div>
-                  <h3 className="font-display font-bold text-3xl text-gray-900">
-                    {student.name}
-                  </h3>
-                </Card>
+                <StudentAvatar studentId={student.id} studentName={student.name} size="lg" />
+                <span className="font-display text-2xl tracking-tight mt-5">{student.name}</span>
+                <span className="inline-flex items-center gap-1 text-sm text-muted mt-1 group-hover:text-ink transition-colors">
+                  Sign in <ArrowUpRight className="w-3.5 h-3.5" />
+                </span>
               </Link>
             ))}
           </div>
@@ -206,24 +242,16 @@ export default function HomePage() {
       </section>
 
       {/* ========== FOOTER ========== */}
-      <footer className="px-4 py-10 border-t border-gray-200 bg-white/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-gray-700 font-display font-bold">
-            <span className="text-2xl">🃏</span>
-            <span>Finity</span>
+      <footer className="border-t border-line bg-surface">
+        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div>
+            <Logo />
+            <p className="text-sm text-muted mt-2">Financial literacy, learned by doing.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/teacher/login"
-              className="px-3 py-2 -m-2 text-sm font-display font-bold text-gray-600 hover:text-gray-900 underline underline-offset-2 transition-colors rounded-lg hover:bg-gray-100/80"
-            >
-              Teacher Login
-            </Link>
-          </div>
+          <Link href="/teacher/login" className="text-[15px] text-ink underline underline-offset-4 decoration-line-strong hover:decoration-ink">
+            Teacher login
+          </Link>
         </div>
-        <p className="text-center text-gray-500 text-sm mt-4 max-w-6xl mx-auto">
-          A fun financial learning game for kids. Complete missions, earn tokens, and learn how money grows!
-        </p>
       </footer>
     </div>
   );

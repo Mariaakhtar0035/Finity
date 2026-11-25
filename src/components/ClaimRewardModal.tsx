@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { Minus, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { Coin, TOKEN_META, TokenType } from "@/components/ui/Coin";
+import { Callout } from "@/components/ui/Feedback";
+import { CoinStackDoodle } from "@/components/ui/Doodles";
 import { PendingReward } from "@/types";
 import { getRecommendedSplit } from "@/lib/store";
 
@@ -22,58 +26,29 @@ export function ClaimRewardModal({
   onClaim,
   onClose,
 }: ClaimRewardModalProps) {
-  const recommended = getRecommendedSplit(pendingReward.totalAmount);
-  const [spendAmount, setSpendAmount] = useState(recommended.spend);
-  const [saveAmount, setSaveAmount] = useState(recommended.save);
-  const [growAmount, setGrowAmount] = useState(recommended.grow);
-  const [error, setError] = useState<string | null>(null);
+  const total = pendingReward.totalAmount;
+  const recommended = getRecommendedSplit(total);
+  const [split, setSplit] = useState<Record<TokenType, number>>({
+    spend: recommended.spend,
+    save: recommended.save,
+    grow: recommended.grow,
+  });
   const [splitExplanation, setSplitExplanation] = useState<string | null>(null);
   const [loadingSplitExplanation, setLoadingSplitExplanation] = useState(false);
 
   useEffect(() => {
-    setSpendAmount(recommended.spend);
-    setSaveAmount(recommended.save);
-    setGrowAmount(recommended.grow);
+    setSplit({ spend: recommended.spend, save: recommended.save, grow: recommended.grow });
   }, [pendingReward.id, recommended.spend, recommended.save, recommended.grow]);
 
-  const handleUseRecommended = () => {
-    setSpendAmount(recommended.spend);
-    setSaveAmount(recommended.save);
-    setGrowAmount(recommended.grow);
-    setError(null);
-  };
+  const allocated = split.spend + split.save + split.grow;
+  const remaining = total - allocated;
+  const isRecommended =
+    split.spend === recommended.spend && split.save === recommended.save && split.grow === recommended.grow;
 
-  const handleSpendChange = (value: string) => {
-    const num = parseInt(value, 10);
-    if (isNaN(num) || value === "") {
-      setSpendAmount(0);
-      return;
-    }
-    const spend = Math.max(0, Math.min(num, pendingReward.totalAmount));
-    setSpendAmount(spend);
-    setError(null);
-  };
-
-  const handleSaveChange = (value: string) => {
-    const num = parseInt(value, 10);
-    if (isNaN(num) || value === "") {
-      setSaveAmount(0);
-      return;
-    }
-    const save = Math.max(0, Math.min(num, pendingReward.totalAmount));
-    setSaveAmount(save);
-    setError(null);
-  };
-
-  const handleGrowChange = (value: string) => {
-    const num = parseInt(value, 10);
-    if (isNaN(num) || value === "") {
-      setGrowAmount(0);
-      return;
-    }
-    const grow = Math.max(0, Math.min(num, pendingReward.totalAmount));
-    setGrowAmount(grow);
-    setError(null);
+  const setAmount = (type: TokenType, value: number) => {
+    const others = allocated - split[type];
+    const clamped = Math.max(0, Math.min(Math.round(value) || 0, total - others));
+    setSplit((s) => ({ ...s, [type]: clamped }));
   };
 
   const handleExplainSplit = () => {
@@ -86,10 +61,10 @@ export function ClaimRewardModal({
         type: "SPEND_VS_GROW",
         studentName,
         context: {
-          totalReward: pendingReward.totalAmount,
-          spendAmount,
-          saveAmount,
-          growAmount,
+          totalReward: total,
+          spendAmount: split.spend,
+          saveAmount: split.save,
+          growAmount: split.grow,
         },
       }),
     })
@@ -99,120 +74,96 @@ export function ClaimRewardModal({
       .finally(() => setLoadingSplitExplanation(false));
   };
 
-  const handleSubmit = () => {
-    const total = spendAmount + saveAmount + growAmount;
-    if (spendAmount < 0 || saveAmount < 0 || growAmount < 0) {
-      setError("Amounts cannot be negative.");
-      return;
-    }
-    if (total !== pendingReward.totalAmount) {
-      setError(`Spend + Save + Grow must equal ${pendingReward.totalAmount} tokens.`);
-      return;
-    }
-    onClaim(spendAmount, saveAmount, growAmount);
-  };
-
   return (
     <Modal
-      isOpen={true}
+      isOpen
       onClose={onClose}
-      title="Claim your tokens!"
+      illustration={<CoinStackDoodle className="w-24 h-auto" />}
+      title={`${total} tokens earned`}
+      description={
+        <>
+          for <span className="text-ink">{pendingReward.missionTitle}</span>. How would you like to split them?
+        </>
+      }
     >
-      <div className="space-y-6">
-        <p className="text-lg text-gray-700">
-          Claim your <span className="font-bold text-amber-600">{pendingReward.totalAmount}</span> tokens from{" "}
-          <span className="font-bold">{pendingReward.missionTitle}</span>!
-        </p>
-
-        <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-bold text-gray-800 mb-2">
-            Recommended: {recommended.spend} Spend, {recommended.save} Save, {recommended.grow} Grow
-          </p>
-          <Button variant="secondary" onClick={handleUseRecommended} className="w-full">
-            Use recommended split
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              💰 Spend tokens (use now)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={pendingReward.totalAmount}
-              value={spendAmount}
-              onChange={(e) => handleSpendChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 font-display text-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-            />
+      <div className="space-y-2">
+        {(["spend", "save", "grow"] as TokenType[]).map((type) => (
+          <div key={type} className="flex items-center gap-3 rounded-2xl border border-line p-3">
+            <Coin type={type} size={36} />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium leading-tight">{TOKEN_META[type].label}</p>
+              <p className="text-xs text-muted">{TOKEN_META[type].short}</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setAmount(type, split[type] - 1)}
+                disabled={split[type] === 0}
+                className="w-8 h-8 rounded-full bg-paper flex items-center justify-center hover:bg-paper-deep disabled:opacity-30"
+                aria-label={`Less ${TOKEN_META[type].label}`}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={total}
+                value={split[type]}
+                onChange={(e) => setAmount(type, parseInt(e.target.value, 10))}
+                className="w-14 text-center font-display text-xl num bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                aria-label={`${TOKEN_META[type].label} tokens`}
+              />
+              <button
+                type="button"
+                onClick={() => setAmount(type, split[type] + 1)}
+                disabled={remaining === 0}
+                className="w-8 h-8 rounded-full bg-paper flex items-center justify-center hover:bg-paper-deep disabled:opacity-30"
+                aria-label={`More ${TOKEN_META[type].label}`}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              💾 Save tokens (set aside)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={pendingReward.totalAmount}
-              value={saveAmount}
-              onChange={(e) => handleSaveChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 font-display text-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              🌱 Grow tokens (saves for later)
-            </label>
-            <input
-              type="number"
-              min={0}
-              max={pendingReward.totalAmount}
-              value={growAmount}
-              onChange={(e) => handleGrowChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 font-display text-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-            />
-          </div>
-          <p className="text-sm text-gray-500">
-            Total: {spendAmount + saveAmount + growAmount} / {pendingReward.totalAmount} tokens
-          </p>
-        </div>
+        ))}
+      </div>
 
-        <button
-          type="button"
-          onClick={handleExplainSplit}
-          className="text-sm font-bold text-amber-600 hover:text-amber-700 underline"
-        >
-          Why split like this?
-        </button>
-        {loadingSplitExplanation && (
-          <div className="h-12 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
-            <span className="text-sm text-gray-500">Mrs. Pennyworth is thinking…</span>
-          </div>
-        )}
-        {splitExplanation && !loadingSplitExplanation && (
-          <p className="text-gray-700 font-medium border-l-4 border-amber-400 pl-4 py-2 bg-amber-50/80 rounded-r-xl">
-            {splitExplanation}
-          </p>
-        )}
-
-        {error && (
-          <p className="text-red-600 font-medium text-sm">{error}</p>
-        )}
-
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={onClose} className="flex-1">
-            Cancel
-          </Button>
-          <Button
-            variant="success"
-            onClick={handleSubmit}
-            className="flex-1"
-            disabled={spendAmount + saveAmount + growAmount !== pendingReward.totalAmount}
+      <div className="flex items-center justify-between mt-4 text-sm">
+        <span className={remaining === 0 ? "text-muted" : "text-negative"}>
+          {remaining === 0 ? "All tokens placed" : `${remaining} token${remaining === 1 ? "" : "s"} left to place`}
+        </span>
+        {!isRecommended ? (
+          <button
+            type="button"
+            onClick={() => setSplit({ spend: recommended.spend, save: recommended.save, grow: recommended.grow })}
+            className="underline underline-offset-4 decoration-line-strong hover:decoration-ink"
           >
-            Claim tokens!
-          </Button>
-        </div>
+            Use suggested split
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleExplainSplit}
+            className="underline underline-offset-4 decoration-line-strong hover:decoration-ink"
+          >
+            Why this split?
+          </button>
+        )}
+      </div>
+
+      {(loadingSplitExplanation || splitExplanation) && (
+        <Callout loading={loadingSplitExplanation} className="mt-4">
+          {splitExplanation}
+        </Callout>
+      )}
+
+      <div className="flex gap-3 mt-6">
+        <Button variant="secondary" onClick={onClose} fullWidth>
+          Later
+        </Button>
+        <Button onClick={() => onClaim(split.spend, split.save, split.grow)} disabled={remaining !== 0} fullWidth>
+          Claim tokens
+        </Button>
       </div>
     </Modal>
   );

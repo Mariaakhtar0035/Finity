@@ -1,21 +1,13 @@
 "use client";
 
 import React, { useMemo } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card } from "@/components/ui/Card";
 import type { Mission } from "@/types";
 
 const MAX_MISSIONS = 8;
 const TITLE_LENGTH = 14;
+const AXIS_STYLE = { fontFamily: "var(--font-jost), sans-serif", fontSize: 12, fill: "#9a9892" };
 
 interface MarketSupplyDemandChartProps {
   missions: Mission[];
@@ -28,9 +20,7 @@ function truncate(s: string, len: number): string {
 
 export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartProps) {
   const chartData = useMemo(() => {
-    const sorted = [...missions].sort(
-      (a, b) => b.requestCount - a.requestCount,
-    );
+    const sorted = [...missions].sort((a, b) => b.requestCount - a.requestCount);
     return sorted.slice(0, MAX_MISSIONS).map((m) => ({
       name: truncate(m.title, TITLE_LENGTH),
       fullTitle: m.title,
@@ -40,107 +30,59 @@ export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartPro
     }));
   }, [missions]);
 
-  const hasData = chartData.length > 0;
-
-  if (!hasData) {
-    return (
-      <Card className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200">
-        <h3 className="text-lg font-bold mb-2 text-amber-900">
-          Supply & Demand at a Glance
-        </h3>
-        <p className="text-amber-800 text-center py-8">
-          Request missions to see supply & demand in action!
-        </p>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl">
-      <h3 className="font-display font-bold text-xl text-amber-900 mb-4 text-center">
-        Supply & Demand at a Glance
-      </h3>
-      <p className="text-sm text-amber-800 mb-4 text-center">
-        Gray = full price (no requests). Orange = current price (popular = lower).
-      </p>
-      <div className="h-[280px] w-full min-h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
-            barCategoryGap="20%"
-            barGap={8}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="rgba(0,0,0,0.08)"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="name"
-              stroke="#92400e"
-              style={{
-                fontFamily: "var(--font-fredoka), sans-serif",
-                fontWeight: 600,
-              }}
-              tick={{ fontSize: 11 }}
-            />
-            <YAxis
-              stroke="#92400e"
-              style={{
-                fontFamily: "var(--font-fredoka), sans-serif",
-                fontWeight: 600,
-              }}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip
-              contentStyle={{
-                borderRadius: 12,
-                border: "2px solid #f59e0b",
-                fontFamily: "var(--font-nunito), sans-serif",
-              }}
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const p = payload[0]?.payload as { fullTitle?: string; baseReward?: number; currentReward?: number; requestCount?: number } | undefined;
-                if (!p) return null;
-                return (
-                  <div className="px-4 py-3 rounded-xl bg-white shadow-lg border-2 border-amber-200">
-                    <p className="font-bold text-gray-900 mb-2">{p.fullTitle}</p>
-                    <p className="text-sm text-gray-600">
-                      Base price: {p.baseReward} tokens · Current: {p.currentReward} tokens
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {p.requestCount} request{p.requestCount === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                );
-              }}
-            />
-            <Legend
-              wrapperStyle={{
-                fontFamily: "var(--font-fredoka), sans-serif",
-                fontWeight: 600,
-              }}
-              iconType="square"
-              iconSize={12}
-            />
-            <Bar
-              dataKey="baseReward"
-              name="Base price (full)"
-              fill="#9ca3af"
-              radius={[4, 4, 0, 0]}
-              isAnimationActive
-            />
-            <Bar
-              dataKey="currentReward"
-              name="Current price"
-              fill="#f59e0b"
-              radius={[4, 4, 0, 0]}
-              isAnimationActive
-            />
-          </BarChart>
-        </ResponsiveContainer>
+    <Card className="p-6 md:p-8">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+        <div>
+          <h2 className="font-display text-2xl tracking-tight">Supply & demand at a glance</h2>
+          <p className="text-muted mt-1 text-[15px]">The most requested missions, full price vs. today&apos;s price.</p>
+        </div>
+        <div className="flex gap-5 text-sm text-ink-soft">
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-paper-deep" /> Full price
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="w-3 h-3 rounded-sm bg-peach-deep" /> Current price
+          </span>
+        </div>
       </div>
+
+      {chartData.length === 0 ? (
+        <p className="text-muted text-center py-16">Request missions to see supply & demand in action.</p>
+      ) : (
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barCategoryGap="22%" barGap={4}>
+              <CartesianGrid stroke="#ece9e3" vertical={false} />
+              <XAxis dataKey="name" tick={AXIS_STYLE} axisLine={false} tickLine={false} interval={0} dy={8} />
+              <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+              <Tooltip
+                cursor={{ fill: "rgba(20,20,20,0.03)" }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const p = payload[0]?.payload as
+                    | { fullTitle?: string; baseReward?: number; currentReward?: number; requestCount?: number }
+                    | undefined;
+                  if (!p) return null;
+                  return (
+                    <div className="px-4 py-3 rounded-2xl bg-surface shadow-lift border border-line text-sm">
+                      <p className="font-medium mb-1">{p.fullTitle}</p>
+                      <p className="text-muted num">
+                        {p.currentReward} now · {p.baseReward} full price
+                      </p>
+                      <p className="text-muted num">
+                        {p.requestCount} request{p.requestCount === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  );
+                }}
+              />
+              <Bar dataKey="baseReward" name="Full price" fill="#e9e7e1" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="currentReward" name="Current price" fill="#e2a55c" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </Card>
   );
 }

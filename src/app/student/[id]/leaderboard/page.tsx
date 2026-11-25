@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Mission } from "@/types";
 import { MarketLeaderboard } from "@/components/MarketLeaderboard";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LiveIndicator } from "@/components/ui/Feedback";
+import { Loading } from "@/components/ui/Loading";
 import { getStudent } from "@/lib/store";
 
 export default function StudentLeaderboardPage() {
@@ -17,24 +20,12 @@ export default function StudentLeaderboardPage() {
 
   const fetchLeaderboardData = async (isAutoRefresh = false) => {
     try {
-      if (isAutoRefresh) {
-        setRefreshing(true);
-      }
-      const timestamp = Date.now();
-      const res = await fetch(`/api/teacher/leaderboard?t=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
+      if (isAutoRefresh) setRefreshing(true);
+      const res = await fetch(`/api/teacher/leaderboard?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
       });
       const data = await res.json();
-      
-      // Log for debugging
-      console.log('[Student Leaderboard] Fetched data:', {
-        missionCount: data.missions?.length,
-        totalRequests: data.missions?.reduce((sum: number, m: any) => sum + m.requestCount, 0),
-      });
-      
       setMissions(data.missions || []);
       setLastUpdate(new Date());
     } catch (error) {
@@ -47,47 +38,27 @@ export default function StudentLeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboardData();
-
-    // Auto-refresh every 3 seconds
-    const interval = setInterval(() => {
-      fetchLeaderboardData(true);
-    }, 3000);
-
+    const interval = setInterval(() => fetchLeaderboardData(true), 3000);
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading market data...</p>
-      </div>
-    );
-  }
-
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2 bg-white p-3 rounded-lg border border-gray-200">
-        <div
-          className={`w-2 h-2 rounded-full ${refreshing ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-        ></div>
-        <p className="text-sm text-gray-600">
-          {refreshing
-            ? "Updating prices..."
-            : `Last updated: ${lastUpdate.toLocaleTimeString()}`}
-        </p>
-        <button
-          onClick={() => fetchLeaderboardData(true)}
-          className="text-sm text-blue-600 hover:text-blue-800 underline ml-auto"
-        >
-          Refresh now
-        </button>
-      </div>
-      <MarketLeaderboard
-        missions={missions}
-        studentId={studentId}
-        studentName={student?.name}
+      <PageHeader
+        eyebrow="Market trends"
+        title="What's hot in class"
+        description="See which missions everyone wants and how that changes their rewards."
+        action={
+          !loading && (
+            <LiveIndicator refreshing={refreshing} lastUpdate={lastUpdate} onRefresh={() => fetchLeaderboardData(true)} />
+          )
+        }
       />
+      {loading ? (
+        <Loading text="Loading market data" />
+      ) : (
+        <MarketLeaderboard missions={missions} studentId={studentId} studentName={student?.name} />
+      )}
     </div>
   );
 }

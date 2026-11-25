@@ -1,8 +1,13 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { ArrowDownRight } from "lucide-react";
 import { Mission } from "@/types";
-import { Card } from "@/components/ui/Card";
+import { Card, SectionHeading } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Callout } from "@/components/ui/Feedback";
+import { Button } from "@/components/ui/Button";
+import { Coin } from "@/components/ui/Coin";
 import { MarketSupplyDemandChart } from "@/components/MarketSupplyDemandChart";
 
 const MISSION_SUGGESTION_FALLBACK =
@@ -20,37 +25,41 @@ interface MarketLeaderboardProps {
   studentName?: string;
 }
 
-export function MarketLeaderboard({ missions, studentId, studentName }: MarketLeaderboardProps) {
+function RankRow({ rank, title, subtitle, right }: { rank: number; title: string; subtitle: React.ReactNode; right: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-4 py-4">
+      <span className="w-8 h-8 rounded-full bg-paper font-display flex items-center justify-center num shrink-0">{rank}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{title}</p>
+        <div className="text-sm text-muted truncate">{subtitle}</div>
+      </div>
+      <div className="text-right shrink-0">{right}</div>
+    </li>
+  );
+}
+
+export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardProps) {
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  // Use useMemo to recalculate when missions prop changes
-  const missionStats: MissionStats[] = useMemo(() => {
-    return missions.map((mission) => {
-      const priceChange = mission.baseReward - mission.currentReward;
-      const priceDropPercent =
-        mission.baseReward > 0 ? (priceChange / mission.baseReward) * 100 : 0;
 
-      return {
-        mission,
-        priceDropPercent,
-        priceChange,
-      };
-    });
-  }, [missions]);
+  const missionStats: MissionStats[] = useMemo(
+    () =>
+      missions.map((mission) => {
+        const priceChange = mission.baseReward - mission.currentReward;
+        const priceDropPercent = mission.baseReward > 0 ? (priceChange / mission.baseReward) * 100 : 0;
+        return { mission, priceDropPercent, priceChange };
+      }),
+    [missions],
+  );
 
-  // Sort by request count (most requested first)
-  const sortedByDemand = useMemo(() => {
-    return [...missionStats].sort(
-      (a, b) => b.mission.requestCount - a.mission.requestCount,
-    );
-  }, [missionStats]);
-
-  // Sort by biggest price drop
-  const sortedByDrop = useMemo(() => {
-    return [...missionStats].sort(
-      (a, b) => b.priceDropPercent - a.priceDropPercent,
-    );
-  }, [missionStats]);
+  const sortedByDemand = useMemo(
+    () => [...missionStats].sort((a, b) => b.mission.requestCount - a.mission.requestCount),
+    [missionStats],
+  );
+  const sortedByDrop = useMemo(
+    () => [...missionStats].filter((s) => s.priceChange > 0).sort((a, b) => b.priceDropPercent - a.priceDropPercent),
+    [missionStats],
+  );
 
   // Available missions (not assigned) for suggestion context
   const { availableMissions, bestValue, popular } = useMemo(() => {
@@ -65,11 +74,9 @@ export function MarketLeaderboard({ missions, studentId, studentName }: MarketLe
         requestCount: m.requestCount,
       })),
       bestValue: best.filter((m) => m.requestCount === 0).map((m) => ({ title: m.title, baseReward: m.baseReward })),
-      popular: pop.filter((m) => m.requestCount > 0).map((m) => ({
-        title: m.title,
-        currentReward: m.currentReward,
-        requestCount: m.requestCount,
-      })),
+      popular: pop
+        .filter((m) => m.requestCount > 0)
+        .map((m) => ({ title: m.title, currentReward: m.currentReward, requestCount: m.requestCount })),
     };
   }, [missions]);
 
@@ -92,272 +99,153 @@ export function MarketLeaderboard({ missions, studentId, studentName }: MarketLe
       .finally(() => setLoadingSuggestion(false));
   };
 
-  // Calculate market statistics
-  const { totalMissions, requestedMissions, totalRequests, avgRequestsPerMission, mostRequestedMission } = useMemo(() => {
-    const totalMissions = missions.length;
-    const requestedMissions = missions.filter(m => m.requestCount > 0).length;
+  const stats = useMemo(() => {
+    const requestedMissions = missions.filter((m) => m.requestCount > 0).length;
     const totalRequests = missions.reduce((sum, m) => sum + m.requestCount, 0);
-    const avgRequestsPerMission =
-      requestedMissions > 0 ? totalRequests / requestedMissions : 0;
-    const mostRequestedMission = sortedByDemand[0]?.mission;
-
-    return { totalMissions, requestedMissions, totalRequests, avgRequestsPerMission, mostRequestedMission };
+    return {
+      requestedMissions,
+      totalRequests,
+      avg: requestedMissions > 0 ? totalRequests / requestedMissions : 0,
+      hottest: sortedByDemand[0]?.mission.requestCount ? sortedByDemand[0].mission.title : "—",
+    };
   }, [missions, sortedByDemand]);
+
+  const topDemand = sortedByDemand.filter((s) => s.mission.requestCount > 0).slice(0, 5);
 
   return (
     <div className="space-y-6">
-      {/* Educational Note - How Supply & Demand Works */}
-      <Card className="p-6 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300">
-        <h3 className="text-lg font-bold mb-2 text-amber-900">
-          💡 How Supply & Demand Works
-        </h3>
-        <p className="text-gray-700">
-          When more students request the same mission, its price drops! This
-          teaches us about <strong>supply and demand</strong>: when something is
-          popular (high demand), but there's only limited availability (limited
-          supply), the value changes. In our classroom market, popular missions
-          become less valuable as more students want to do them.
-        </p>
-        {studentName && (
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={handleAskSuggestion}
-              className="text-amber-700 hover:text-amber-800 font-bold underline"
-            >
-              What mission should I pick?
-            </button>
-            {loadingSuggestion && (
-              <div className="mt-2 h-10 bg-amber-100/50 rounded-xl animate-pulse flex items-center justify-center">
-                <span className="text-sm text-amber-800">Mrs. Pennyworth is thinking…</span>
-              </div>
-            )}
-            {suggestion && !loadingSuggestion && (
-              <p className="mt-2 text-gray-700 font-medium border-l-4 border-amber-400 pl-4 py-2 bg-amber-50/80 rounded-r-xl">
-                {suggestion}
-              </p>
-            )}
+      {/* Explainer */}
+      <Card className="p-6 md:p-8 bg-peach-soft! border-[#f3dcbc]!">
+        <div className="md:flex md:items-start md:justify-between gap-8">
+          <div className="max-w-2xl">
+            <h2 className="font-display text-2xl tracking-tight">How supply & demand works</h2>
+            <p className="text-ink-soft mt-2 leading-relaxed">
+              When lots of students want the same mission (high demand) but only one person can do it
+              (limited supply), each request makes it worth a little less. Popular missions pay less;
+              overlooked missions keep their full reward.
+            </p>
           </div>
+          {studentName && (
+            <Button variant="secondary" onClick={handleAskSuggestion} className="mt-4 md:mt-0 shrink-0 bg-surface!">
+              Which mission should I pick?
+            </Button>
+          )}
+        </div>
+        {(loadingSuggestion || suggestion) && (
+          <Callout loading={loadingSuggestion} className="mt-5 bg-surface!">
+            {suggestion}
+          </Callout>
         )}
       </Card>
 
-      {/* Supply & Demand Graph */}
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Missions requested", value: stats.requestedMissions },
+          { label: "Total requests", value: stats.totalRequests },
+          { label: "Avg. requests / mission", value: stats.avg.toFixed(1) },
+        ].map((s) => (
+          <Card key={s.label} className="p-5">
+            <p className="text-sm text-muted">{s.label}</p>
+            <p className="display text-4xl num mt-2">{s.value}</p>
+          </Card>
+        ))}
+        <Card className="p-5">
+          <p className="text-sm text-muted">Most wanted</p>
+          <p className="font-display text-xl tracking-tight mt-2 leading-snug line-clamp-2">{stats.hottest}</p>
+        </Card>
+      </div>
+
       <MarketSupplyDemandChart missions={missions} />
 
-      {/* Market Overview */}
-      <Card className="p-6 bg-gradient-to-r from-purple-50 to-blue-50">
-        <h2 className="text-2xl font-bold mb-4 text-purple-900">
-          📊 Classroom Market Overview
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Requested Missions</p>
-            <p className="text-2xl font-bold text-purple-700">
-              {requestedMissions}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Total Requests</p>
-            <p className="text-2xl font-bold text-blue-700">{totalRequests}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Avg. Requests/Mission</p>
-            <p className="text-2xl font-bold text-green-700">
-              {avgRequestsPerMission.toFixed(1)}
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600">Hottest Mission</p>
-            <p className="text-lg font-bold text-red-700 truncate">
-              {mostRequestedMission?.title.slice(0, 15) || "N/A"}...
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Most Requested Missions */}
-      <Card className="p-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-900">
-          🔥 Most Requested Missions (High Demand)
-        </h3>
-        <div className="space-y-3">
-          {sortedByDemand.slice(0, 5).map((stat, index) => (
-            <div
-              key={stat.mission.id}
-              className="flex items-center gap-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-orange-200"
-            >
-              <div className="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">
-                {index + 1}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-900 truncate">
-                  {stat.mission.title}
-                </h4>
-                <p className="text-sm text-gray-600 truncate">
-                  {stat.mission.description}
-                </p>
-              </div>
-              <div className="flex-shrink-0 text-right">
-                <div className="text-sm text-gray-600">
-                  {stat.mission.requestCount}{" "}
-                  {stat.mission.requestCount === 1 ? "request" : "requests"}
-                </div>
-                <div className="text-lg font-bold text-orange-700">
-                  {stat.mission.currentReward} 🪙
-                </div>
-                {stat.priceChange > 0 && (
-                  <div className="text-xs text-red-600">
-                    ↓ {stat.priceChange} tokens (
-                    {stat.priceDropPercent.toFixed(0)}%)
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          {sortedByDemand.length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              No missions requested yet
-            </p>
-          )}
-        </div>
-      </Card>
-
-      {/* Biggest Price Drops */}
-      <Card className="p-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-900">
-          📉 Biggest Price Drops (Supply & Demand)
-        </h3>
-        <div className="space-y-3">
-          {sortedByDrop
-            .filter((stat) => stat.priceChange > 0)
-            .slice(0, 5)
-            .map((stat, index) => (
-              <div
-                key={stat.mission.id}
-                className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200"
-              >
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
-                  {index + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 truncate">
-                    {stat.mission.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-gray-500 line-through">
-                      {stat.mission.baseReward} 🪙
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <Card className="p-6 md:p-8">
+          <SectionHeading title="Most requested" description="High demand means a lower reward." />
+          {topDemand.length === 0 ? (
+            <p className="text-muted py-8">No missions requested yet.</p>
+          ) : (
+            <ul className="divide-y divide-line mt-2">
+              {topDemand.map((stat, i) => (
+                <RankRow
+                  key={stat.mission.id}
+                  rank={i + 1}
+                  title={stat.mission.title}
+                  subtitle={`${stat.mission.requestCount} request${stat.mission.requestCount === 1 ? "" : "s"}`}
+                  right={
+                    <span className="inline-flex items-center gap-1.5">
+                      <Coin type="spend" size={20} />
+                      <span className="font-display text-xl num">{stat.mission.currentReward}</span>
                     </span>
-                    <span className="text-lg font-bold text-green-700">
-                      {stat.mission.currentReward} 🪙
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-shrink-0 text-right">
-                  <div className="text-2xl font-bold text-red-600">
-                    -{stat.priceDropPercent.toFixed(0)}%
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {stat.mission.requestCount}{" "}
-                    {stat.mission.requestCount === 1 ? "request" : "requests"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          {sortedByDrop.filter((s) => s.priceChange > 0).length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              No price drops yet - all missions at base price
-            </p>
+                  }
+                />
+              ))}
+            </ul>
           )}
-        </div>
-      </Card>
+        </Card>
 
-      {/* All Missions Table */}
-      <Card className="p-6">
-        <h3 className="text-xl font-bold mb-4 text-gray-900">
-          📋 All Missions Marketplace
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <Card className="p-6 md:p-8">
+          <SectionHeading title="Biggest price drops" description="How far each reward has fallen from full price." />
+          {sortedByDrop.length === 0 ? (
+            <p className="text-muted py-8">No price drops yet. Every mission is at full price.</p>
+          ) : (
+            <ul className="divide-y divide-line mt-2">
+              {sortedByDrop.slice(0, 5).map((stat, i) => (
+                <RankRow
+                  key={stat.mission.id}
+                  rank={i + 1}
+                  title={stat.mission.title}
+                  subtitle={
+                    <span className="num">
+                      <span className="line-through">{stat.mission.baseReward}</span> → {stat.mission.currentReward} tokens
+                    </span>
+                  }
+                  right={
+                    <span className="inline-flex items-center gap-0.5 text-negative font-medium num">
+                      <ArrowDownRight className="w-4 h-4" />
+                      {stat.priceDropPercent.toFixed(0)}%
+                    </span>
+                  }
+                />
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      {/* All missions table */}
+      <Card className="p-6 md:p-8">
+        <SectionHeading title="All missions" className="mb-4" />
+        <div className="overflow-x-auto -mx-6 md:-mx-8">
+          <table className="w-full text-[15px] min-w-[640px]">
             <thead>
-              <tr className="border-b-2 border-gray-300">
-                <th className="text-left p-3 font-semibold text-gray-700">
-                  Mission
-                </th>
-                <th className="text-center p-3 font-semibold text-gray-700">
-                  Base Price
-                </th>
-                <th className="text-center p-3 font-semibold text-gray-700">
-                  Current Price
-                </th>
-                <th className="text-center p-3 font-semibold text-gray-700">
-                  Requests
-                </th>
-                <th className="text-center p-3 font-semibold text-gray-700">
-                  Change
-                </th>
-                <th className="text-center p-3 font-semibold text-gray-700">
-                  Status
-                </th>
+              <tr className="border-b border-line text-sm text-muted text-left">
+                <th className="font-normal py-3 pl-6 md:pl-8 pr-3">Mission</th>
+                <th className="font-normal py-3 px-3 text-right">Full price</th>
+                <th className="font-normal py-3 px-3 text-right">Now</th>
+                <th className="font-normal py-3 px-3 text-right">Requests</th>
+                <th className="font-normal py-3 px-3 text-right">Change</th>
+                <th className="font-normal py-3 pl-3 pr-6 md:pr-8">Status</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line">
               {missionStats.map((stat) => (
-                <tr
-                  key={stat.mission.id}
-                  className="border-b border-gray-200 hover:bg-gray-50"
-                >
-                  <td className="p-3">
-                    <div className="font-medium text-gray-900">
-                      {stat.mission.title}
-                    </div>
-                    <div className="text-sm text-gray-600 truncate max-w-xs">
-                      {stat.mission.description}
-                    </div>
+                <tr key={stat.mission.id} className="hover:bg-paper/50">
+                  <td className="py-4 pl-6 md:pl-8 pr-3">
+                    <p className="font-medium">{stat.mission.title}</p>
+                    <p className="text-sm text-muted truncate max-w-xs">{stat.mission.description}</p>
                   </td>
-                  <td className="p-3 text-center text-gray-700">
-                    {stat.mission.baseReward} 🪙
-                  </td>
-                  <td className="p-3 text-center">
-                    <span className="font-bold text-green-700">
-                      {stat.mission.currentReward} 🪙
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        stat.mission.requestCount > 2
-                          ? "bg-red-100 text-red-800"
-                          : stat.mission.requestCount > 0
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {stat.mission.requestCount}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
+                  <td className="py-4 px-3 text-right num text-muted">{stat.mission.baseReward}</td>
+                  <td className="py-4 px-3 text-right num font-medium">{stat.mission.currentReward}</td>
+                  <td className="py-4 px-3 text-right num">{stat.mission.requestCount}</td>
+                  <td className="py-4 px-3 text-right num">
                     {stat.priceChange > 0 ? (
-                      <div className="text-red-600 font-semibold">
-                        ↓ {stat.priceDropPercent.toFixed(0)}%
-                      </div>
+                      <span className="text-negative">−{stat.priceDropPercent.toFixed(0)}%</span>
                     ) : (
-                      <div className="text-gray-400">—</div>
+                      <span className="text-faint">—</span>
                     )}
                   </td>
-                  <td className="p-3 text-center">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
-                        stat.mission.status === "AVAILABLE"
-                          ? "bg-green-100 text-green-800"
-                          : stat.mission.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800"
-                            : stat.mission.status === "COMPLETED"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {stat.mission.status}
-                    </span>
+                  <td className="py-4 pl-3 pr-6 md:pr-8">
+                    <Badge status={stat.mission.status} />
                   </td>
                 </tr>
               ))}

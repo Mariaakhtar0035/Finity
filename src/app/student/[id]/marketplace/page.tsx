@@ -6,6 +6,10 @@ import { MissionCard } from "@/components/MissionCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SkeletonCard } from "@/components/ui/Loading";
+import { Callout, LiveIndicator } from "@/components/ui/Feedback";
+import { StarDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import { getStudent } from "@/lib/store";
 import type { Mission } from "@/types";
@@ -21,6 +25,7 @@ export default function MarketplacePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
   const [rewardAdjusted, setRewardAdjusted] = useState(false);
   const [supplyDemandExplanation, setSupplyDemandExplanation] = useState<
@@ -88,10 +93,11 @@ export default function MarketplacePage() {
         setRewardAdjusted(adjusted);
         setSupplyDemandExplanation(null);
 
+        setModalTitle("Mission requested");
         setModalMessage(
           adjusted
-            ? `Mission requested! Reward adjusted to ${result.currentReward} tokens.`
-            : `Mission requested! You'll get ${result.currentReward} tokens when your teacher assigns and approves this mission.`,
+            ? `Other classmates want this one too, so the reward is now ${result.currentReward} tokens.`
+            : `You'll earn ${result.currentReward} tokens once your teacher assigns and approves it.`,
         );
         setShowModal(true);
 
@@ -126,7 +132,8 @@ export default function MarketplacePage() {
     } catch (error) {
       setRewardAdjusted(false);
       setSupplyDemandExplanation(null);
-      setModalMessage("You've already requested this mission!");
+      setModalTitle("Already requested");
+      setModalMessage("You've already asked for this mission. Your teacher will assign it soon.");
       setShowModal(true);
     }
   };
@@ -174,39 +181,27 @@ export default function MarketplacePage() {
   const availableMissions = missions.filter((m) => !m.assignedStudentId);
 
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="font-display font-bold text-4xl text-gray-900 mb-2">
-          Mission Marketplace
-        </h1>
-        <p className="text-xl text-gray-700">
-          Request missions to earn tokens!
-        </p>
-        <div className="flex items-center justify-center gap-2 mt-2">
-          <div
-            className={`w-2 h-2 rounded-full ${refreshing ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-          ></div>
-          <p className="text-sm text-gray-500">
-            {refreshing
-              ? "Updating..."
-              : `Last updated: ${lastUpdate.toLocaleTimeString()}`}
-          </p>
-        </div>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow="Mission marketplace"
+        title="Pick your next mission"
+        description="Request a mission and your teacher will assign it. The more classmates who want a mission, the lower its reward."
+        action={<LiveIndicator refreshing={refreshing} lastUpdate={lastUpdate} />}
+      />
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading market missions...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : availableMissions.length === 0 ? (
         <EmptyState
-          emoji="🎲"
-          title="No missions yet! Check back soon"
-          description="All missions are taken right now. Roll the dice and come back later for new opportunities!"
+          title="No missions right now"
+          description="Every mission has been taken. Check back soon for new ones."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {availableMissions.map((mission) => (
             <MissionCard
               key={mission.id}
@@ -219,51 +214,35 @@ export default function MarketplacePage() {
         </div>
       )}
 
-      <SuccessSparkle
-        show={showSparkle}
-        onComplete={() => setShowSparkle(false)}
-      />
+      <SuccessSparkle show={showSparkle} onComplete={() => setShowSparkle(false)} />
 
-      <Modal isOpen={showModal} onClose={closeModal} title="Mission Request">
-        <p className="text-lg text-gray-700 mb-4">{modalMessage}</p>
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={modalTitle}
+        description={modalMessage}
+        illustration={modalTitle === "Already requested" ? undefined : <StarDoodle className="w-16 h-16" />}
+      >
         {rewardAdjusted && (
-          <div className="mb-6">
-            {loadingSupplyDemand ? (
-              <div className="h-12 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center">
-                <span className="text-sm text-gray-500">
-                  Loading explanation...
-                </span>
-              </div>
-            ) : supplyDemandExplanation ? (
-              <p className="text-gray-700 font-medium border-l-4 border-amber-400 pl-4 py-2 bg-amber-50/80 rounded-r-xl">
-                {supplyDemandExplanation}
-              </p>
-            ) : null}
-          </div>
+          <Callout loading={loadingSupplyDemand} className="mb-6">
+            {supplyDemandExplanation}
+          </Callout>
         )}
-        <Button onClick={closeModal} className="w-full">
-          Got it!
+        <Button onClick={closeModal} fullWidth>
+          Got it
         </Button>
       </Modal>
 
       <Modal
         isOpen={!!priceDropModalMission}
         onClose={closePriceDropModal}
-        title="Why is the reward less?"
+        title="Why is the reward lower?"
       >
-        {loadingPriceDropExplanation ? (
-          <div className="h-12 bg-gray-100 rounded-xl animate-pulse flex items-center justify-center mb-6">
-            <span className="text-sm text-gray-500">
-              Mrs. Pennyworth is thinking…
-            </span>
-          </div>
-        ) : priceDropExplanation ? (
-          <p className="text-lg text-gray-700 mb-6 border-l-4 border-amber-400 pl-4 py-2 bg-amber-50/80 rounded-r-xl">
-            {priceDropExplanation}
-          </p>
-        ) : null}
-        <Button onClick={closePriceDropModal} className="w-full">
-          Got it!
+        <Callout loading={loadingPriceDropExplanation} className="mb-6">
+          {priceDropExplanation}
+        </Callout>
+        <Button onClick={closePriceDropModal} fullWidth>
+          Got it
         </Button>
       </Modal>
     </div>

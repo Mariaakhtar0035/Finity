@@ -1,21 +1,24 @@
 import type { Metadata } from "next";
-import { Nunito, Fredoka } from "next/font/google";
+import { Fraunces, Jost } from "next/font/google";
 import "./globals.css";
 
-const nunito = Nunito({
+const jost = Jost({
   subsets: ["latin"],
-  variable: "--font-nunito",
+  variable: "--font-jost",
+  display: "swap",
 });
 
-const fredoka = Fredoka({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-fredoka",
+  variable: "--font-fraunces",
+  axes: ["opsz", "SOFT"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Classroom Economy",
-  description: "A fun financial literacy app for kids",
+  title: "Finity — Money lessons kids actually remember",
+  description:
+    "A classroom economy where students earn, save and grow tokens to build real financial habits.",
 };
 
 export default function RootLayout({
@@ -24,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${nunito.variable} ${fredoka.variable} font-sans antialiased`}>
+    <html lang="en" className={`${jost.variable} ${fraunces.variable}`}>
+      <body className="font-sans antialiased">
         {children}
       </body>
     </html>

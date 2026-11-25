@@ -3,8 +3,7 @@
 import React from "react";
 import { Modal } from "@/components/ui/Modal";
 import { StudentAvatar } from "@/components/StudentAvatar";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Check } from "lucide-react";
 import { Student } from "@/types";
 
 interface AssignMissionModalProps {
@@ -36,59 +35,50 @@ export function AssignMissionModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Assign Mission">
-      <div className="space-y-5">
-        <p className="font-display font-bold text-gray-800">
-          Mission: <span className="uppercase tracking-wide">{missionTitle}</span>
-        </p>
-
-        {assignedStudent && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold text-gray-700">Assigned to:</span>
-            <Badge type="assigned" label={assignedStudent.name} />
-            <span className="text-xs text-gray-500">Click a student below to reassign.</span>
-          </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Assign to student:</label>
-          <div className="space-y-2">
-            {students.map((student) => {
-              const isAssigned = assignedStudentId === student.id;
-              return (
-                <button
-                  key={student.id}
-                  type="button"
-                  onClick={() => handleAssign(student.id)}
-                  className={`
-                    w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border-2
-                    font-display font-bold text-left transition-all
-                    hover:-translate-y-0.5 hover:shadow-md
-                    ${isAssigned ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-white hover:border-blue-400"}
-                  `}
-                >
-                  <span className="flex items-center gap-2">
-                    <StudentAvatar
-                      studentId={student.id}
-                      studentName={student.name}
-                      size="sm"
-                      className="w-8 h-8 text-sm"
-                    />
-                    <span>{student.name}</span>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Assign mission"
+      description={
+        assignedStudent ? (
+          <>
+            <span className="text-ink">{missionTitle}</span> is assigned to {assignedStudent.name}. Pick someone else to reassign it.
+          </>
+        ) : (
+          <>
+            Who should do <span className="text-ink">{missionTitle}</span>?
+          </>
+        )
+      }
+    >
+      <ul className="space-y-2">
+        {students.map((student) => {
+          const isAssigned = assignedStudentId === student.id;
+          return (
+            <li key={student.id}>
+              <button
+                type="button"
+                onClick={() => handleAssign(student.id)}
+                className={`w-full flex items-center justify-between gap-3 pl-2 pr-4 py-2 rounded-2xl border text-left transition-colors ${
+                  isAssigned ? "border-ink bg-paper" : "border-line hover:border-ink"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <StudentAvatar studentId={student.id} studentName={student.name} size="sm" />
+                  <span className="font-medium">{student.name}</span>
+                </span>
+                {isAssigned ? (
+                  <span className="inline-flex items-center gap-1 text-sm text-muted">
+                    <Check className="w-4 h-4" /> Assigned
                   </span>
-                  {isAssigned && (
-                    <span className="text-emerald-600 font-bold text-sm">✓ Assigned</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <Button variant="secondary" onClick={onClose} className="w-full">
-          Close
-        </Button>
-      </div>
+                ) : (
+                  <span className="text-sm text-muted">Assign</span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </Modal>
   );
 }

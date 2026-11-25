@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { ArrowUp, X } from "lucide-react";
 import { MrsPennyworthAvatar, type MrsPennyworthState } from "./MrsPennyworthAvatar";
+import { TypingDots } from "@/components/ui/Feedback";
 import type { AskNarratorContext } from "@/lib/gemini";
 
 const MAX_QUESTION_LENGTH = 200;
@@ -21,22 +23,23 @@ interface MrsPennyworthPanelProps {
   context?: AskNarratorContext | null;
 }
 
-const WELCOME_MESSAGE = "Hi! I'm Mrs. Pennyworth 💬 I'm here to help you think about your tokens, saving, and spending. Ask me anything — I'll give you options, not orders! What's on your mind?";
+const WELCOME_MESSAGE =
+  "Hi! I'm Mrs. Pennyworth. I can help you think about your tokens, saving and spending. I'll give you options, not orders. What's on your mind?";
+
+const SUGGESTIONS = [
+  "Should I spend or save?",
+  "How does Grow work?",
+  "Which mission should I pick?",
+];
 
 export function MrsPennyworthPanel({
   isOpen,
   onClose,
-  onToggle,
   studentName,
   context,
 }: MrsPennyworthPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: "welcome",
-      role: "assistant",
-      content: WELCOME_MESSAGE,
-      timestamp: new Date(),
-    },
+    { id: "welcome", role: "assistant", content: WELCOME_MESSAGE, timestamp: new Date() },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,17 +47,16 @@ export function MrsPennyworthPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = input.trim();
+  useEffect(() => {
+    if (isOpen) setTimeout(() => inputRef.current?.focus(), 250);
+  }, [isOpen]);
+
+  const ask = async (question: string) => {
+    const trimmed = question.trim();
     if (!trimmed || loading) return;
 
     const userMessage: ChatMessage = {
@@ -86,167 +88,137 @@ export function MrsPennyworthPanel({
       const answer = data.answer ?? "I'm not sure right now. Ask your teacher or try again!";
 
       setAvatarState("celebration");
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: answer,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      setTimeout(() => setAvatarState("encouraging"), 800);
-      setTimeout(() => setAvatarState("idle"), 2500);
+      setMessages((prev) => [
+        ...prev,
+        { id: `assistant-${Date.now()}`, role: "assistant", content: answer, timestamp: new Date() },
+      ]);
+      setTimeout(() => setAvatarState("idle"), 1200);
     } catch {
       setAvatarState("idle");
-      const fallbackMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: "I'm having a little trouble right now. Try asking your teacher, or give it another go in a moment!",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, fallbackMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content:
+            "I'm having a little trouble right now. Try asking your teacher, or give it another go in a moment!",
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    ask(input);
+  };
+
+  const showSuggestions = messages.length === 1 && !loading;
+
   return (
-    <>
-      {/* Side panel - fixed, non-blocking */}
-      <aside
-        className={`
-          fixed top-0 right-0 z-40 h-dvh w-[360px]
-          bg-white/98 backdrop-blur-sm
-          border-l-2 border-teal-200
-          shadow-[-8px_0_24px_rgba(0,0,0,0.08)]
-          flex flex-col
-          transition-transform duration-300 ease-out
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-        `}
-        style={{ marginTop: 0 }}
-        aria-label="Mrs. Pennyworth chat panel"
-      >
-        {/* Header with avatar */}
-        <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-4 border-b border-teal-100 bg-linear-to-r from-teal-50/80 to-amber-50/50">
-          <div className="flex items-center gap-3">
-            <MrsPennyworthAvatar state={avatarState} size="lg" />
-            <div>
-              <h2 className="font-display font-bold text-lg text-gray-900">
-                Mrs. Pennyworth
-              </h2>
-              <p className="text-xs text-teal-700">Your financial guide</p>
+    <aside
+      className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] bg-surface border-l border-line shadow-lift flex flex-col
+        transition-transform duration-300 ease-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      aria-label="Mrs. Pennyworth chat"
+      aria-hidden={!isOpen}
+      inert={!isOpen}
+    >
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between gap-3 px-5 h-20 border-b border-line">
+        <div className="flex items-center gap-3">
+          <MrsPennyworthAvatar state={avatarState} size="md" />
+          <div>
+            <h2 className="font-medium leading-tight">Mrs. Pennyworth</h2>
+            <p className="text-sm text-muted">Your money coach</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-paper"
+          aria-label="Close chat"
+        >
+          <X className="w-5 h-5" strokeWidth={1.75} />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-3 min-h-0">
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            <p
+              className={`max-w-[85%] px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap ${
+                msg.role === "assistant"
+                  ? "bg-paper text-ink rounded-2xl rounded-bl-md"
+                  : "bg-ink text-white rounded-2xl rounded-br-md"
+              }`}
+            >
+              {msg.content}
+            </p>
+          </div>
+        ))}
+
+        {showSuggestions && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => ask(s)}
+                className="h-9 px-4 rounded-full border border-line-strong text-sm text-ink-soft hover:border-ink hover:text-ink transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex">
+            <div className="bg-paper rounded-2xl rounded-bl-md px-4 py-3 text-sm">
+              <TypingDots label="Thinking" />
             </div>
           </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSubmit} className="shrink-0 p-4 border-t border-line">
+        <div className="flex items-end gap-2 rounded-3xl border border-line-strong bg-surface pl-4 pr-2 py-2 focus-within:border-ink transition-colors">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, MAX_QUESTION_LENGTH))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                ask(input);
+              }
+            }}
+            placeholder="Ask about tokens, saving, spending…"
+            rows={1}
+            maxLength={MAX_QUESTION_LENGTH}
+            disabled={loading}
+            className="flex-1 resize-none bg-transparent py-1.5 text-[15px] placeholder:text-faint focus:outline-none max-h-32 disabled:opacity-60"
+            aria-label="Your message"
+          />
           <button
-            type="button"
-            onClick={onToggle}
-            className="p-2 rounded-full hover:bg-teal-100 text-gray-600 hover:text-teal-800 transition-colors"
-            aria-label="Collapse chat panel"
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="w-9 h-9 shrink-0 rounded-full bg-ink text-white flex items-center justify-center disabled:opacity-25 transition-opacity"
+            aria-label="Send message"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <ArrowUp className="w-4 h-4" strokeWidth={2.25} />
           </button>
         </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              {msg.role === "assistant" && (
-                <div className="shrink-0 pt-1">
-                  <MrsPennyworthAvatar state="idle" size="sm" />
-                </div>
-              )}
-              <div
-                className={`
-                  max-w-[85%] px-4 py-2.5 rounded-2xl text-sm
-                  ${msg.role === "assistant"
-                    ? "bg-teal-50/90 border border-teal-200/80 text-gray-800 rounded-tl-sm"
-                    : "bg-slate-100 border border-slate-200 text-gray-800 rounded-tr-sm"
-                  }
-                `}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Typing indicator */}
-          {loading && (
-            <div className="flex gap-2">
-              <div className="shrink-0 pt-1">
-                <MrsPennyworthAvatar state="thinking" size="sm" />
-              </div>
-              <div className="bg-teal-50/90 border border-teal-200/80 rounded-2xl rounded-tl-sm px-4 py-3">
-                <p className="text-sm text-teal-700 font-medium flex items-center gap-1">
-                  Mrs. Pennyworth is thinking
-                  <span className="flex gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-typing-dot" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-typing-dot" style={{ animationDelay: "0.2s" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-typing-dot" style={{ animationDelay: "0.4s" }} />
-                  </span>
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
-        <form
-          onSubmit={handleSubmit}
-          className="shrink-0 p-4 border-t border-teal-100 bg-white"
-        >
-          <div className="flex gap-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value.slice(0, MAX_QUESTION_LENGTH))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e as unknown as React.FormEvent);
-                }
-              }}
-              placeholder="Ask about tokens, saving, spending..."
-              rows={2}
-              maxLength={MAX_QUESTION_LENGTH}
-              disabled={loading}
-              className="
-                flex-1 px-4 py-3 rounded-xl border-2 border-teal-200
-                focus:border-teal-500 focus:ring-2 focus:ring-teal-200
-                font-display text-sm resize-none
-                disabled:opacity-60 disabled:cursor-not-allowed
-              "
-              aria-label="Your message"
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="
-                shrink-0 self-end px-4 py-3 rounded-xl
-                bg-teal-500 text-white font-display font-bold text-sm
-                hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed
-                transition-colors
-              "
-              aria-label="Send message"
-            >
-              Send
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            {input.length}/{MAX_QUESTION_LENGTH}
-          </p>
-        </form>
-      </aside>
-
-      {/* Optional: semi-transparent overlay when panel is open - but we DON'T want to block clicks.
-          Per requirements: "Never block clicks on the main app". So we skip the overlay. */}
-    </>
+        <p className="text-xs text-faint mt-2 px-2 text-right num">
+          {input.length}/{MAX_QUESTION_LENGTH}
+        </p>
+      </form>
+    </aside>
   );
 }

@@ -1,359 +1,233 @@
 @import "tailwindcss";
 
-body {
-  font-family: var(--font-nunito), sans-serif;
-  background: #d2e5d2;
-  background-attachment: fixed;
-  color: #1f2937;
+/* ------------------------------------------------------------------
+   Finity design tokens
+   Calm, professional base (paper + ink) with a pastel accent layer
+   used for tokens, illustrations and small moments of play.
+------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: var(--font-jost), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --color-ink: #141414;
+  --color-ink-soft: #2b2b2b;
+  --color-muted: #6c6a65;
+  --color-faint: #9a9892;
+  --color-line: #e6e4de;
+  --color-line-strong: #d5d2ca;
+  --color-paper: #f3f2ee;
+  --color-paper-deep: #e9e7e1;
+  --color-surface: #ffffff;
+
+  --color-positive: #1d7a46;
+  --color-negative: #c0392b;
+
+  /* Pastel accents (fill) + soft tints (backgrounds) */
+  --color-peach: #f6c88f;
+  --color-peach-deep: #e2a55c;
+  --color-peach-soft: #fcefdc;
+  --color-periwinkle: #b6c1f5;
+  --color-periwinkle-deep: #7f90e3;
+  --color-periwinkle-soft: #e9ecfc;
+  --color-mint: #aee2c2;
+  --color-mint-deep: #5fbf88;
+  --color-mint-soft: #e4f5ea;
+  --color-lavender: #d6c6f4;
+  --color-lavender-soft: #f2ecfc;
+  --color-pink: #f2b0cf;
+  --color-pink-soft: #fce9f2;
+  --color-butter: #f4e297;
+  --color-butter-soft: #fbf6dc;
+  --color-sky: #a9d9ef;
+  --color-sky-soft: #e5f3fa;
+  --color-sand: #e5cfae;
+  --color-sand-soft: #f6efe4;
+
+  --radius-card: 1.75rem;
+
+  --shadow-soft: 0 1px 2px rgba(20, 20, 20, 0.04), 0 8px 24px -12px rgba(20, 20, 20, 0.12);
+  --shadow-lift: 0 2px 4px rgba(20, 20, 20, 0.04), 0 18px 40px -16px rgba(20, 20, 20, 0.22);
+
+  --animate-pop-in: pop-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-fade-up: fade-up 0.5s ease-out both;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-fredoka), sans-serif;
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: var(--color-lavender);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
-/* Animations */
-@keyframes coin-flip {
-  0% {
-    transform: rotateY(0deg) scale(1);
+@layer components {
+  /* Large editorial headline */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    line-height: 1.02;
+    font-variation-settings: "opsz" 60, "SOFT" 50;
   }
-  50% {
-    transform: rotateY(180deg) scale(1.2);
+
+  /* Small uppercase label */
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
   }
-  100% {
-    transform: rotateY(360deg) scale(1);
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Form controls */
+  .input {
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-surface);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: var(--color-ink);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .input::placeholder {
+    color: var(--color-faint);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.08);
+  }
+  .input[aria-invalid="true"] {
+    border-color: var(--color-negative);
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.1);
+  }
+
+  .label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-ink);
+    margin-bottom: 0.375rem;
+  }
+
+  /* Interactive card lift */
+  .lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
   }
 }
 
-@keyframes bounce-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* ------------------------------------------------------------------
+   Motion
+------------------------------------------------------------------- */
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-@keyframes float-up {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
+@keyframes fade-up {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+.shake {
+  animation: shake 0.4s ease-in-out;
 }
 
-@keyframes sparkle {
-  0% { opacity: 0; transform: scale(0); }
-  50% { opacity: 1; transform: scale(1.2); }
-  100% { opacity: 0; transform: scale(1); }
-}
-
-@keyframes gentle-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-@keyframes chart-fill {
+@keyframes bar-grow {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
-
-.coin-animation {
-  animation: coin-flip 0.6s ease-in-out;
-}
-
-.bounce-in {
-  animation: bounce-in 0.5s ease-out;
-}
-
-.float-up {
-  animation: float-up 1s forwards;
-}
-
-.shake {
-  animation: shake 0.5s ease-in-out;
-}
-
-.gentle-pulse {
-  animation: gentle-pulse 2s ease-in-out infinite;
-}
-
-.chart-fill {
+.bar-grow {
   transform-origin: left;
-  animation: chart-fill 0.8s ease-out forwards;
+  animation: bar-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* Micro-interactions */
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-6px) rotate(var(--r, 0deg)); }
 }
-.hover-lift:hover {
-  transform: translateY(-4px);
-}
-
-.press-down:active {
-  transform: translateY(2px);
+.bob {
+  animation: bob 5s ease-in-out infinite;
 }
 
-/* Game card hover tilt - respect reduced motion */
-.card-hover-tilt {
-  transition: transform 0.2s ease, box-shadow 0.25s ease;
+@keyframes confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, -20px, 0) rotate(0deg); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx, 0), 70vh, 0) rotate(var(--rot, 360deg)); }
 }
-.card-hover-tilt:hover {
-  transform: translateY(-3px) rotate(0.5deg);
-  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
-}
-@media (prefers-reduced-motion: reduce) {
-  .card-hover-tilt:hover {
-    transform: translateY(-2px);
-  }
+.confetti-piece {
+  animation: confetti-fall 1.6s cubic-bezier(0.3, 0.6, 0.4, 1) forwards;
 }
 
-/* Off-white / cream card body (optional: add subtle texture via background-image) */
-.card-paper {
-  background-color: #faf8f5;
-}
-
-/* Landing page: mint green background */
-.landing-board {
-  background: #d2e5d2;
-  background-attachment: fixed;
-}
-.landing-board::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-.landing-board > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Dice bounce for landing */
-@keyframes dice-bounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-4px) rotate(2deg); }
-  75% { transform: translateY(-2px) rotate(-1deg); }
-}
-
-/* Token spin on hover */
-@keyframes token-spin {
-  from { transform: rotateY(0deg); }
-  to { transform: rotateY(360deg); }
-}
-
-.dice-bounce {
-  animation: dice-bounce 2.8s ease-in-out infinite;
-}
-
-.token-spin-hover:hover {
-  animation: token-spin 0.6s ease-in-out;
-}
-
-/* Landing card lift + tilt */
-.landing-card-hover {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.landing-card-hover:hover {
-  transform: translateY(-4px) rotate(0.5deg);
-  box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.06);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dice-bounce {
-    animation: none;
-  }
-  .token-spin-hover:hover {
-    animation: none;
-  }
-  .landing-card-hover:hover {
-    transform: translateY(-4px);
-  }
-}
-
-/* Utility classes for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .coin-animation,
-  .bounce-in,
-  .float-up,
-  .shake,
-  .gentle-pulse,
-  .chart-fill {
-    animation: none;
-  }
-  .hover-lift:hover {
-    transform: none;
-  }
-  .animate-pennyworth-idle,
-  .animate-pennyworth-thinking,
-  .animate-pennyworth-speaking,
-  .animate-pennyworth-encouraging,
-  .animate-pennyworth-glasses,
-  .animate-pennyworth-token-spin,
-  .animate-pennyworth-blink,
-  .animate-pennyworth-smile {
-    animation: none;
-  }
-}
-
-/* Mrs. Pennyworth avatar animations */
-@keyframes pennyworth-idle {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
-}
-
-@keyframes pennyworth-thinking {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
-  }
-  50% {
-    box-shadow: 0 4px 20px rgba(13, 148, 136, 0.6);
-  }
-}
-
-@keyframes pennyworth-speaking {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-@keyframes pennyworth-encouraging {
-  0%, 100% {
-    transform: rotate(-2deg) scale(1);
-  }
-  50% {
-    transform: rotate(2deg) scale(1.03);
-  }
-}
-
-@keyframes pennyworth-celebration {
-  0% {
-    transform: scale(1);
-  }
-  25% {
-    transform: scale(1.1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  75% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes pennyworth-glasses {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes pennyworth-token-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pennyworth-blink {
-  0%, 45%, 55%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.1;
-  }
-}
-
-@keyframes pennyworth-smile {
-  0%, 100% {
-    transform: scaleX(1);
-  }
-  50% {
-    transform: scaleX(1.1);
-  }
-}
-
-.animate-pennyworth-idle {
-  animation: pennyworth-idle 2.5s ease-in-out infinite;
-}
-
-.animate-pennyworth-thinking {
-  animation: pennyworth-thinking 1.2s ease-in-out infinite;
-}
-
-.animate-pennyworth-speaking {
-  animation: pennyworth-speaking 0.6s ease-in-out infinite;
-}
-
-.animate-pennyworth-encouraging {
-  animation: pennyworth-encouraging 1.5s ease-in-out infinite;
-}
-
-.animate-pennyworth-celebration {
-  animation: pennyworth-celebration 0.8s ease-out;
-}
-
-.animate-pennyworth-glasses {
-  animation: pennyworth-glasses 0.8s ease-in-out infinite;
-}
-
-.animate-pennyworth-token-spin {
-  animation: pennyworth-token-spin 1.5s linear infinite;
-  transform-origin: center;
-}
-
-.animate-pennyworth-blink {
-  animation: pennyworth-blink 3s ease-in-out infinite;
-}
-
-.animate-pennyworth-smile {
-  animation: pennyworth-smile 1s ease-in-out infinite;
-  transform-origin: center;
-}
-
-/* Typing dots */
 @keyframes typing-dot {
-  0%, 60%, 100% {
-    opacity: 0.3;
-  }
-  30% {
-    opacity: 1;
-  }
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+.typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
 }
 
-.animate-typing-dot {
-  animation: typing-dot 1.4s ease-in-out infinite;
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.live-ping {
+  animation: live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes pennyworth-think {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.pennyworth-thinking {
+  animation: pennyworth-think 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

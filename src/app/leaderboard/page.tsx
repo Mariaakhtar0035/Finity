@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Mission } from "@/types";
 import { MarketLeaderboard } from "@/components/MarketLeaderboard";
 import { Button } from "@/components/ui/Button";
-import { useRouter } from "next/navigation";
+import { Logo } from "@/components/ui/Logo";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LiveIndicator } from "@/components/ui/Feedback";
+import { Loading } from "@/components/ui/Loading";
 
 export default function LeaderboardPage() {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -15,24 +20,12 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboardData = async (isAutoRefresh = false) => {
     try {
-      if (isAutoRefresh) {
-        setRefreshing(true);
-      }
-      const timestamp = Date.now();
-      const res = await fetch(`/api/teacher/leaderboard?t=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
+      if (isAutoRefresh) setRefreshing(true);
+      const res = await fetch(`/api/teacher/leaderboard?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
       });
       const data = await res.json();
-      
-      // Log for debugging
-      console.log('[Leaderboard] Fetched data:', {
-        missionCount: data.missions?.length,
-        totalRequests: data.missions?.reduce((sum: number, m: any) => sum + m.requestCount, 0),
-      });
-      
       setMissions(data.missions || []);
       setLastUpdate(new Date());
     } catch (error) {
@@ -45,83 +38,34 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchLeaderboardData();
-
-    // Auto-refresh every 3 seconds
-    const interval = setInterval(() => {
-      fetchLeaderboardData(true);
-    }, 3000);
-
+    const interval = setInterval(() => fetchLeaderboardData(true), 3000);
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading market data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              🏆 Classroom Market Leaderboard
-            </h1>
-            <p className="text-gray-600">
-              Track how supply and demand affects mission prices in real-time
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <div
-                className={`w-2 h-2 rounded-full ${refreshing ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}
-              ></div>
-              <p className="text-sm text-gray-500">
-                {refreshing
-                  ? "Updating..."
-                  : `Last updated: ${lastUpdate.toLocaleTimeString()}`}
-              </p>
-              <button
-                onClick={() => fetchLeaderboardData(true)}
-                className="text-sm text-blue-600 hover:text-blue-800 underline ml-2"
-              >
-                Refresh now
-              </button>
-            </div>
-          </div>
-          <Button
-            onClick={() => router.back()}
-            variant="secondary"
-            className="hidden md:block"
-          >
-            ← Back
+    <div className="min-h-screen bg-paper">
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur border-b border-line">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Logo href="/teacher" suffix="for teachers" />
+          <Button variant="secondary" size="sm" onClick={() => router.back()}>
+            <ArrowLeft className="w-4 h-4" /> Back
           </Button>
         </div>
+      </header>
 
-        {/* Leaderboard Component */}
-        <MarketLeaderboard 
-          missions={missions} 
-          key={lastUpdate.getTime()}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
+        <PageHeader
+          eyebrow="Classroom market"
+          title="Supply & demand, live"
+          description="Track how student demand changes mission rewards in real time."
+          action={
+            !loading && (
+              <LiveIndicator refreshing={refreshing} lastUpdate={lastUpdate} onRefresh={() => fetchLeaderboardData(true)} />
+            )
+          }
         />
-
-        {/* Mobile Back Button */}
-        <div className="mt-6 md:hidden">
-          <Button
-            onClick={() => router.back()}
-            variant="secondary"
-            className="w-full"
-          >
-            ← Back
-          </Button>
-        </div>
-      </div>
+        {loading ? <Loading text="Loading market data" /> : <MarketLeaderboard missions={missions} />}
+      </main>
     </div>
   );
 }

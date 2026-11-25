@@ -5,33 +5,28 @@ interface LoadingProps {
   text?: string;
 }
 
-export function Loading({ size = "md", text }: LoadingProps) {
-  const sizeClasses = {
-    sm: "w-8 h-8",
-    md: "w-16 h-16",
-    lg: "w-24 h-24",
-  };
+const SIZES = { sm: "w-5 h-5", md: "w-8 h-8", lg: "w-10 h-10" };
 
+export function Loading({ size = "md", text }: LoadingProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <div className={`${sizeClasses[size]} relative`}>
-        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-        <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-      {text && (
-        <p className="text-gray-700 font-bold text-lg">{text}</p>
-      )}
+    <div className="flex flex-col items-center justify-center gap-3 py-16" role="status">
+      <div
+        className={`${SIZES[size]} rounded-full border-2 border-line-strong border-t-ink animate-spin`}
+        aria-hidden
+      />
+      {text && <p className="text-sm text-muted">{text}</p>}
     </div>
   );
 }
 
 export function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border-4 border-gray-200 p-6 animate-pulse">
-      <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-      <div className="h-4 bg-gray-200 rounded w-5/6 mb-4"></div>
-      <div className="h-10 bg-gray-200 rounded w-full"></div>
+    <div className="bg-surface rounded-[var(--radius-card)] border border-line p-6 animate-pulse">
+      <div className="h-24 bg-paper rounded-2xl mb-5" />
+      <div className="h-5 bg-paper rounded-full w-2/3 mb-3" />
+      <div className="h-4 bg-paper rounded-full w-full mb-2" />
+      <div className="h-4 bg-paper rounded-full w-4/5 mb-6" />
+      <div className="h-11 bg-paper rounded-full w-full" />
     </div>
   );
 }
