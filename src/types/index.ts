@@ -58,6 +58,23 @@ export interface TokenBalance {
   save: number;
 }
 
+/** One line in a student's money activity feed */
+export interface ActivityEntry {
+  id: string;
+  studentId: string;
+  week: number;
+  kind: "earned" | "spent" | "moved" | "interest";
+  title: string;
+  /** Change to each balance (positive = in, negative = out) */
+  spend: number;
+  save: number;
+  grow: number;
+  at: number;
+}
+
+/** Steps in the first-visit checklist */
+export type TourStep = "request" | "approve" | "claim" | "advance" | "buy";
+
 export interface PendingReward {
   id: string;
   missionId: string;

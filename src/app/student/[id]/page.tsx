@@ -17,6 +17,7 @@ import {
   getPendingRewardsForStudent,
   claimPendingReward,
   getBalanceHistory,
+  getCurrentWeek,
 } from "@/lib/store";
 import { TransferTokensCard } from "@/components/TransferTokensCard";
 import { GrowthComparisonChart } from "@/components/GrowthComparisonChart";
@@ -64,7 +65,7 @@ export default function StudentDashboard() {
   return (
     <div className="space-y-6">
       <header className="mb-2">
-        <p className="font-display text-lg text-muted mb-1">Welcome back</p>
+        <p className="font-display text-lg text-muted mb-1">Welcome back · Week {getCurrentWeek()}</p>
         <h1 className="display text-[44px] md:text-[56px]">{student.name}&apos;s money</h1>
       </header>
 

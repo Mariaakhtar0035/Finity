@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
+import { CalendarPlus, Copy, LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
+import { SproutDoodle } from "@/components/ui/Doodles";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin, TOKEN_META } from "@/components/ui/Coin";
@@ -24,6 +25,8 @@ import { AssignMissionModal } from "@/components/AssignMissionModal";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import {
+  advanceWeek,
+  getCurrentWeek,
   CLASSROOM,
   formatClassCode,
   assignOrReassignMission,
@@ -55,6 +58,7 @@ export default function TeacherDashboard() {
   const missions = getMissions();
   const rewards = getRewards();
   const pendingMissions = getPendingApprovalMissions();
+  const week = getCurrentWeek();
   const [authorized, setAuthorized] = useState(false);
   const [message, setMessage] = useState("");
   const [showSparkle, setShowSparkle] = useState(false);
@@ -88,6 +92,14 @@ export default function TeacherDashboard() {
       const name = students.find((s) => s.id === studentId)?.name;
       triggerSuccess(`Mission assigned to ${name}.`);
     }
+  };
+
+  const handleAdvanceWeek = () => {
+    const result = advanceWeek();
+    triggerSuccess(
+      `Week ${result.week} started. Students earned ${result.totalInterest} Grow tokens in interest.`,
+      true,
+    );
   };
 
   const handleApproveMission = (missionId: string) => {
@@ -233,7 +245,7 @@ export default function TeacherDashboard() {
           <Loading />
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               {summary.map((s) => (
                 <Card key={s.label} className="p-5">
                   <p className="text-sm text-muted">{s.label}</p>
@@ -241,6 +253,20 @@ export default function TeacherDashboard() {
                 </Card>
               ))}
             </div>
+
+            <Card className="relative overflow-hidden mb-10 p-5 md:p-6 pl-5 md:pl-36 flex flex-col sm:flex-row sm:items-center gap-4 bg-mint-soft! border-[#cfe9d8]!">
+              <SproutDoodle className="hidden md:block absolute left-8 -bottom-3 w-20 h-auto" />
+              <div className="flex-1">
+                <p className="text-sm text-muted">Current week</p>
+                <p className="font-display text-3xl tracking-tight">Week {week}</p>
+                <p className="text-[15px] text-ink-soft mt-1">
+                  When a new week starts, every student&apos;s Grow tokens earn 2% interest.
+                </p>
+              </div>
+              <Button onClick={handleAdvanceWeek} className="shrink-0">
+                <CalendarPlus className="w-4 h-4" /> Start week {week + 1}
+              </Button>
+            </Card>
 
             <div className="overflow-x-auto mb-6 -mx-4 px-4 [scrollbar-width:none]">
               <Segmented

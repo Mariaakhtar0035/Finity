@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { MissionCard } from "@/components/MissionCard";
-import { ArrowRight, CheckCircle2, Clock3, Hourglass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Coin } from "@/components/ui/Coin";
@@ -13,14 +13,15 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { PurchaseCard } from "@/components/PurchaseCard";
-import { Badge } from "@/components/ui/Badge";
 import {
   getStudentMissions,
   getStudent,
   getRecommendedSplit,
   getPendingRewardsForStudent,
   getRewards,
+  getActivity,
 } from "@/lib/store";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { Mission } from "@/types";
 import { useStore } from "@/lib/useStore";
 
@@ -74,17 +75,6 @@ export default function ActivityPage() {
       .then((data) => setSplitExplanation(data.explanation ?? SPEND_VS_GROW_FALLBACK))
       .catch(() => setSplitExplanation(SPEND_VS_GROW_FALLBACK))
       .finally(() => setLoadingSplitExplanation(false));
-  };
-
-  const activityIcon = (status: Mission["status"]) => {
-    switch (status) {
-      case "COMPLETED":
-        return <CheckCircle2 className="w-5 h-5" strokeWidth={1.75} />;
-      case "IN_PROGRESS":
-        return <Clock3 className="w-5 h-5" strokeWidth={1.75} />;
-      default:
-        return <Hourglass className="w-5 h-5" strokeWidth={1.75} />;
-    }
   };
 
   return (
@@ -142,32 +132,10 @@ export default function ActivityPage() {
       </section>
 
       <div className="grid lg:grid-cols-2 gap-6 items-start">
-        {/* Recent Activity */}
+        {/* Money activity */}
         <Card className="p-6 md:p-8">
-          <SectionHeading title="Recent activity" className="mb-4" />
-          {missions.length === 0 ? (
-            <p className="text-muted py-6">Nothing here yet.</p>
-          ) : (
-            <ul className="divide-y divide-line">
-              {missions.slice(0, 5).map((mission) => (
-                <li key={mission.id} className="flex items-center gap-4 py-4">
-                  <span className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-ink-soft shrink-0">
-                    {activityIcon(mission.status)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{mission.title}</p>
-                    <div className="mt-1">
-                      <Badge status={mission.status} />
-                    </div>
-                  </div>
-                  <span className={`font-display text-xl num ${mission.status === "COMPLETED" ? "text-positive" : "text-ink"}`}>
-                    {mission.status === "COMPLETED" ? "+" : ""}
-                    {mission.currentReward}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <SectionHeading title="Money activity" description="Every token you've earned, spent, moved or grown." className="mb-2" />
+          <ActivityFeed entries={getActivity(studentId)} limit={8} emptyText="Nothing yet. Claim a reward or buy something to see it here." />
         </Card>
 
         {/* My Purchases */}

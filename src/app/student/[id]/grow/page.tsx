@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Coin } from "@/components/ui/Coin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SproutDoodle } from "@/components/ui/Doodles";
-import { getStudent } from "@/lib/store";
+import { getInterestEarned, getStudent } from "@/lib/store";
 import { useStore } from "@/lib/useStore";
 import { getProjections, getGrowthPercentage } from "@/lib/growthCalculator";
 
@@ -19,6 +19,7 @@ export default function GrowTokensPage() {
   if (!student) return null;
 
   const now = student.growTokens;
+  const interestEarned = getInterestEarned(studentId);
   const projections = getProjections(now);
   const max = Math.max(projections.oneYear, 1);
 
@@ -55,6 +56,11 @@ export default function GrowTokensPage() {
               <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-paper text-sm text-ink-soft">
                 <Lock className="w-3.5 h-3.5" /> Locked while it grows
               </span>
+              {interestEarned > 0 && (
+                <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-paper text-sm text-ink-soft num">
+                  {interestEarned} earned in interest so far
+                </span>
+              )}
             </div>
           </div>
           <div className="hidden md:flex items-end justify-center bg-mint-soft px-14 pt-6">

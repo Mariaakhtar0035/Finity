@@ -1,6 +1,6 @@
 import type { BalanceHistoryEntry } from "@/types";
 
-const WEEKLY_RATE = 0.02; // 2% weekly growth
+export const WEEKLY_RATE = 0.02; // 2% weekly growth
 
 export function calculateGrowth(principal: number, weeks: number): number {
   return Math.floor(principal * Math.pow(1 + WEEKLY_RATE, weeks));
@@ -33,9 +33,9 @@ export function getGrowthPercentage(principal: number, future: number): number {
 export function generateHistoryFromCurrent(
   spendTokens: number,
   saveTokens: number,
-  growTokens: number
+  growTokens: number,
+  weeks = 16
 ): BalanceHistoryEntry[] {
-  const weeks = 16;
   if (spendTokens === 0 && saveTokens === 0 && growTokens === 0) {
     return Array.from({ length: weeks }, (_, i) => ({
       week: i + 1,

@@ -1,5 +1,5 @@
-import { Student, Mission, Reward, MissionStatus, MissionBandColor, BalanceHistoryEntry, PendingReward } from "@/types";
-import { generateHistoryFromCurrent } from "@/lib/growthCalculator";
+import { Student, Mission, Reward, MissionStatus, MissionBandColor, BalanceHistoryEntry, PendingReward, ActivityEntry, TourStep } from "@/types";
+import { generateHistoryFromCurrent, WEEKLY_RATE } from "@/lib/growthCalculator";
 import { RECOMMENDED_SPEND_RATIO, RECOMMENDED_SAVE_RATIO, RECOMMENDED_GROW_RATIO } from "@/lib/constants";
 
 /*
@@ -555,19 +555,72 @@ export function verifyClassCode(input: string): boolean {
 /* ------------------------------------------------------------------
    Persistence + change notifications
 ------------------------------------------------------------------- */
-const STORAGE_KEY = "finity-demo-v2";
+const STORAGE_KEY = "finity-demo-v3";
 
 type Snapshot = {
   students: Student[];
   missions: Mission[];
   rewards: Reward[];
   pendingRewards: PendingReward[];
+  currentWeek: number;
+  activity: ActivityEntry[];
+  tour: Partial<Record<TourStep, boolean>>;
+  tourDismissed: boolean;
 };
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
+/** The class starts in week 12 of the school term */
+const SEED_WEEK = 12;
+let currentWeek = SEED_WEEK;
+let activity: ActivityEntry[] = [];
+let tour: Partial<Record<TourStep, boolean>> = {};
+let tourDismissed = false;
+
+/* Give every seeded student a 12-week history that ends at today's balances,
+   plus a few past purchases in their activity feed. */
+(function prepareSeed() {
+  students.forEach((s) => {
+    let h = s.balanceHistory?.length
+      ? s.balanceHistory
+      : generateHistoryFromCurrent(s.spendTokens, s.saveTokens, s.growTokens, SEED_WEEK);
+    const offset = SEED_WEEK - h[h.length - 1].week;
+    h = h.map((e) => ({ ...e, week: e.week + offset }));
+    while (h[0].week > 1) h.unshift({ week: h[0].week - 1, spendBalance: 0, saveBalance: 0, growBalance: 0 });
+    h[h.length - 1] = { week: SEED_WEEK, spendBalance: s.spendTokens, saveBalance: s.saveTokens, growBalance: s.growTokens };
+    s.balanceHistory = h;
+
+    s.purchasedRewards.forEach((rid, i) => {
+      const reward = rewards.find((r) => r.id === rid);
+      if (!reward) return;
+      const week = Math.max(1, SEED_WEEK - 2 - i * 3);
+      activity.push({
+        id: `seed-${s.id}-${rid}`,
+        studentId: s.id,
+        week,
+        kind: "spent",
+        title: `Bought ${reward.title}`,
+        spend: -reward.cost,
+        save: 0,
+        grow: 0,
+        at: week,
+      });
+    });
+  });
+  activity.sort((a, b) => b.week - a.week);
+})();
+
 // Captured before any mutation so "Reset demo" can restore it
-const SEED: Omit<Snapshot, "pendingRewards"> = clone({ students, missions, rewards });
+const SEED: Snapshot = clone({
+  students,
+  missions,
+  rewards,
+  pendingRewards: [],
+  currentWeek,
+  activity,
+  tour: {},
+  tourDismissed: false,
+});
 
 let version = 0;
 let lastChangedAt = Date.now();
@@ -584,7 +637,16 @@ function emit() {
 function save() {
   if (typeof window === "undefined") return;
   try {
-    const snapshot: Snapshot = { students, missions, rewards, pendingRewards };
+    const snapshot: Snapshot = {
+      students,
+      missions,
+      rewards,
+      pendingRewards,
+      currentWeek,
+      activity,
+      tour,
+      tourDismissed,
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
     // storage full or unavailable — the demo still works in memory
@@ -607,6 +669,10 @@ function applySnapshot(snap: Snapshot) {
   missions = snap.missions;
   rewards = snap.rewards;
   pendingRewards = snap.pendingRewards ?? [];
+  currentWeek = snap.currentWeek ?? SEED_WEEK;
+  activity = snap.activity ?? [];
+  tour = snap.tour ?? {};
+  tourDismissed = snap.tourDismissed ?? false;
 }
 
 function loadFromStorage(): boolean {
@@ -630,7 +696,7 @@ export function hydrateStore() {
   emit();
   window.addEventListener("storage", (e) => {
     if (e.key !== STORAGE_KEY) return;
-    if (e.newValue === null) applySnapshot({ ...clone(SEED), pendingRewards: [] });
+    if (e.newValue === null) applySnapshot(clone(SEED));
     else loadFromStorage();
     emit();
   });
@@ -655,7 +721,7 @@ export function getLastChangedAt(): Date {
 
 /** Restore the original demo data (in this tab and any other open tabs) */
 export function resetDemo() {
-  applySnapshot({ ...clone(SEED), pendingRewards: [] });
+  applySnapshot(clone(SEED));
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -664,6 +730,87 @@ export function resetDemo() {
     }
   }
   emit();
+}
+
+/* ------------------------------------------------------------------
+   Weeks, balance history, activity feed and the first-visit checklist
+------------------------------------------------------------------- */
+const BUCKET_LABEL: Record<TokenBucket, string> = { spend: "Spend", save: "Save", grow: "Grow" };
+
+/** Record a student's balances for the current week (replaces this week's entry) */
+function snapshotBalances(student: Student) {
+  const entry: BalanceHistoryEntry = {
+    week: currentWeek,
+    spendBalance: student.spendTokens,
+    saveBalance: student.saveTokens,
+    growBalance: student.growTokens,
+  };
+  const h = student.balanceHistory ?? (student.balanceHistory = []);
+  if (h.length && h[h.length - 1].week === currentWeek) h[h.length - 1] = entry;
+  else h.push(entry);
+}
+
+function logActivity(entry: Omit<ActivityEntry, "id" | "week" | "at">) {
+  activity.unshift({
+    ...entry,
+    id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    week: currentWeek,
+    at: Date.now(),
+  });
+  if (activity.length > 1000) activity.length = 1000;
+}
+
+function markTour(step: TourStep) {
+  tour[step] = true;
+}
+
+export function getCurrentWeek(): number {
+  return currentWeek;
+}
+
+export function getActivity(studentId: string): ActivityEntry[] {
+  return activity.filter((a) => a.studentId === studentId);
+}
+
+/** Total Grow tokens a student has earned from weekly interest */
+export function getInterestEarned(studentId: string): number {
+  return activity
+    .filter((a) => a.studentId === studentId && a.kind === "interest")
+    .reduce((sum, a) => sum + a.grow, 0);
+}
+
+/**
+ * Move the class forward one week: every student's Grow balance earns 2%
+ * (at least 1 token if they have any), and a new history point is recorded.
+ */
+export function advanceWeek(): { week: number; totalInterest: number } {
+  touch();
+  currentWeek += 1;
+  let totalInterest = 0;
+  students.forEach((s) => {
+    const interest = s.growTokens > 0 ? Math.max(1, Math.round(s.growTokens * WEEKLY_RATE)) : 0;
+    s.growTokens += interest;
+    totalInterest += interest;
+    snapshotBalances(s);
+    if (interest > 0) {
+      logActivity({ studentId: s.id, kind: "interest", title: "Weekly Grow interest", spend: 0, save: 0, grow: interest });
+    }
+  });
+  markTour("advance");
+  return { week: currentWeek, totalInterest };
+}
+
+export function getTour(): Partial<Record<TourStep, boolean>> {
+  return tour;
+}
+
+export function isTourDismissed(): boolean {
+  return tourDismissed;
+}
+
+export function setTourDismissed(dismissed: boolean) {
+  touch();
+  tourDismissed = dismissed;
 }
 
 // Supply & Demand calculation
@@ -742,6 +889,7 @@ export function createStudent(data: CreateStudentData): Student {
     assignedMissions: [],
     purchasedRewards: [],
   };
+  snapshotBalances(student);
   students.push(student);
   return student;
 }
@@ -839,6 +987,7 @@ export function requestMission(studentId: string, missionId: string): Mission | 
   // Recalculate reward
   mission.currentReward = calculateReward(mission.baseReward, mission.requestCount);
   mission.status = "REQUESTED";
+  markTour("request");
   
   // Update the mission in the array
   const updated = updateMission(missionId, mission);
@@ -914,6 +1063,17 @@ export function claimPendingReward(
     growTokens: student.growTokens + growAmount,
   });
   
+  snapshotBalances(updatedStudent!);
+  logActivity({
+    studentId: student.id,
+    kind: "earned",
+    title: `Earned: ${pending.missionTitle}`,
+    spend: spendAmount,
+    save: saveAmount,
+    grow: growAmount,
+  });
+  markTour("claim");
+
   // Remove pending reward
   pendingRewards.splice(index, 1);
 
@@ -951,6 +1111,15 @@ export function transferTokens(
     saveTokens: updated.save,
     growTokens: updated.grow,
   });
+  snapshotBalances(updatedStudent!);
+  logActivity({
+    studentId,
+    kind: "moved",
+    title: `Moved ${BUCKET_LABEL[from]} to ${BUCKET_LABEL[to]}`,
+    spend: updated.spend - balances.spend,
+    save: updated.save - balances.save,
+    grow: updated.grow - balances.grow,
+  });
 
   return { student: updatedStudent! };
 }
@@ -975,6 +1144,7 @@ export function completeMission(missionId: string): { mission: Mission; student:
     totalAmount: reward,
   };
   pendingRewards.push(pendingReward);
+  markTour("approve");
 
   return { mission, student, pendingReward };
 }
@@ -1052,7 +1222,10 @@ export function purchaseReward(studentId: string, rewardId: string): { student: 
   }
   
   updateStudent(studentId, student);
-  
+  snapshotBalances(student);
+  logActivity({ studentId, kind: "spent", title: `Bought ${reward.title}`, spend: -reward.cost, save: 0, grow: 0 });
+  markTour("buy");
+
   return { student, reward };
 }
 
