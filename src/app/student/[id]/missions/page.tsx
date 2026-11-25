@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { MissionCard } from "@/components/MissionCard";
@@ -22,6 +22,7 @@ import {
   getRewards,
 } from "@/lib/store";
 import { Mission } from "@/types";
+import { useStore } from "@/lib/useStore";
 
 const SPEND_VS_GROW_FALLBACK =
   "You earned tokens! Some go to Spend (use now), some to Save, and some to Grow (locked and growing).";
@@ -46,20 +47,13 @@ export default function ActivityPage() {
   const [splitExplanation, setSplitExplanation] = useState<string | null>(null);
   const [loadingSplitExplanation, setLoadingSplitExplanation] = useState(false);
 
-  const student = useMemo(() => getStudent(studentId), [studentId]);
-  const missions = useMemo(() => getStudentMissions(studentId), [studentId]);
-  const pendingRewards = useMemo(
-    () => getPendingRewardsForStudent(studentId),
-    [studentId],
-  );
-  const rewards = useMemo(() => getRewards(), []);
-  const purchasedRewardItems = useMemo(
-    () =>
-      student
-        ? rewards.filter((r) => student.purchasedRewards.includes(r.id))
-        : [],
-    [student, rewards],
-  );
+  useStore();
+  const student = getStudent(studentId);
+  const missions = getStudentMissions(studentId);
+  const pendingRewards = getPendingRewardsForStudent(studentId);
+  const purchasedRewardItems = student
+    ? getRewards().filter((r) => student.purchasedRewards.includes(r.id))
+    : [];
 
   const handleExplainRewardSplit = (mission: Mission) => {
     setSplitModalMission(mission);

@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { MissionCard } from "@/components/MissionCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { SkeletonCard } from "@/components/ui/Loading";
 import { Callout, LiveIndicator } from "@/components/ui/Feedback";
 import { StarDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
-import { getStudent } from "@/lib/store";
+import { getAvailableMissions, getLastChangedAt, getStudent, requestMission } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
 import type { Mission } from "@/types";
 
 const SUPPLY_DEMAND_FALLBACK =
@@ -20,10 +20,8 @@ const SUPPLY_DEMAND_FALLBACK =
 export default function MarketplacePage() {
   const params = useParams();
   const studentId = params.id as string;
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  useStore();
+  const missions = getAvailableMissions();
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
@@ -43,93 +41,51 @@ export default function MarketplacePage() {
   const [loadingPriceDropExplanation, setLoadingPriceDropExplanation] =
     useState(false);
 
-  const fetchMarketplaceMissions = async (isAutoRefresh = false) => {
-    try {
-      if (isAutoRefresh) {
-        setRefreshing(true);
+  const handleRequestMission = (missionId: string) => {
+    const result = requestMission(studentId, missionId);
+    if (result) {
+      setShowSparkle(true);
+      const adjusted =
+        result.currentReward !== result.baseReward || result.requestCount > 1;
+      setRewardAdjusted(adjusted);
+      setSupplyDemandExplanation(null);
+
+      setModalTitle("Mission requested");
+      setModalMessage(
+        adjusted
+          ? `Other classmates want this one too, so the reward is now ${result.currentReward} tokens.`
+          : `You'll earn ${result.currentReward} tokens once your teacher assigns and approves it.`,
+      );
+      setShowModal(true);
+
+      if (adjusted) {
+        const studentName = getStudent(studentId)?.name ?? "Student";
+        setLoadingSupplyDemand(true);
+        fetch("/api/gemini/explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "SUPPLY_DEMAND",
+            studentName,
+            context: {
+              baseReward: result.baseReward,
+              currentReward: result.currentReward,
+              requestCount: result.requestCount,
+            },
+          }),
+        })
+          .then((res) =>
+            res.ok ? res.json() : Promise.reject(new Error("Failed")),
+          )
+          .then((data) =>
+            setSupplyDemandExplanation(
+              data.explanation ?? SUPPLY_DEMAND_FALLBACK,
+            ),
+          )
+          .catch(() => setSupplyDemandExplanation(SUPPLY_DEMAND_FALLBACK))
+          .finally(() => setLoadingSupplyDemand(false));
       }
-      const res = await fetch("/api/student/marketplace");
-      const data = await res.json();
-      setMissions(data.missions || []);
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error("Failed to fetch marketplace missions:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMarketplaceMissions();
-
-    const interval = setInterval(() => {
-      fetchMarketplaceMissions(true);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleRequestMission = async (missionId: string) => {
-    try {
-      const res = await fetch("/api/student/marketplace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, missionId }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Request failed");
-      }
-
-      const data = await res.json();
-      const result: Mission | undefined = data?.mission;
-
-      if (result) {
-        setShowSparkle(true);
-        setMissions(data.missions || []);
-        const adjusted =
-          result.currentReward !== result.baseReward || result.requestCount > 1;
-        setRewardAdjusted(adjusted);
-        setSupplyDemandExplanation(null);
-
-        setModalTitle("Mission requested");
-        setModalMessage(
-          adjusted
-            ? `Other classmates want this one too, so the reward is now ${result.currentReward} tokens.`
-            : `You'll earn ${result.currentReward} tokens once your teacher assigns and approves it.`,
-        );
-        setShowModal(true);
-
-        if (adjusted) {
-          const studentName = getStudent(studentId)?.name ?? "Student";
-          setLoadingSupplyDemand(true);
-          fetch("/api/gemini/explain", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "SUPPLY_DEMAND",
-              studentName,
-              context: {
-                baseReward: result.baseReward,
-                currentReward: result.currentReward,
-                requestCount: result.requestCount,
-              },
-            }),
-          })
-            .then((res) =>
-              res.ok ? res.json() : Promise.reject(new Error("Failed")),
-            )
-            .then((data) =>
-              setSupplyDemandExplanation(
-                data.explanation ?? SUPPLY_DEMAND_FALLBACK,
-              ),
-            )
-            .catch(() => setSupplyDemandExplanation(SUPPLY_DEMAND_FALLBACK))
-            .finally(() => setLoadingSupplyDemand(false));
-        }
-      }
-    } catch (error) {
+    } else {
       setRewardAdjusted(false);
       setSupplyDemandExplanation(null);
       setModalTitle("Already requested");
@@ -186,16 +142,10 @@ export default function MarketplacePage() {
         eyebrow="Mission marketplace"
         title="Pick your next mission"
         description="Request a mission and your teacher will assign it. The more classmates who want a mission, the lower its reward."
-        action={<LiveIndicator refreshing={refreshing} lastUpdate={lastUpdate} />}
+        action={<LiveIndicator lastUpdate={getLastChangedAt()} />}
       />
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : availableMissions.length === 0 ? (
+      {availableMissions.length === 0 ? (
         <EmptyState
           title="No missions right now"
           description="Every mission has been taken. Check back soon for new ones."

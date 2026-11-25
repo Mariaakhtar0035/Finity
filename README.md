@@ -42,10 +42,37 @@ npm install
 
 **Environment Variables**
 
-Set up your `.env.local` in the project root with your Gemini API key.
+Create `.env.local` in the project root with your Gemini API key:
+
+```
+GEMINI_API_KEY=your_key_here
+```
+
+The AI is optional: without a key, Mrs. Pennyworth falls back to built-in answers.
 
 **Run the App**
 
 ```bash
 npm run dev
 ```
+
+Open http://localhost:3000. Every demo PIN (students and teacher) is `1234`.
+
+## How the demo works
+
+This is a showcase build, so there's no database or real accounts:
+
+- All classroom data lives in the visitor's browser (`localStorage`), so everyone gets their own sandbox and progress survives a refresh.
+- Teacher and student tabs in the same browser stay in sync, so you can approve a mission as the teacher in one tab and claim it as the student in another.
+- Visiting `/?reset` restores the starting data in that browser. There's no button for it in the UI.
+- The AI routes are rate limited per visitor (25 requests per 10 minutes) to protect your API budget.
+
+## Deploying
+
+The easiest host is [Vercel](https://vercel.com):
+
+1. Push the repo to GitHub, then import it at vercel.com/new. The defaults work for Next.js.
+2. Under **Settings → Environment Variables**, add `GEMINI_API_KEY`.
+3. Deploy. You'll get a public URL to share.
+
+The in-app rate limit is a speed bump, not a guarantee, so also set a budget or quota on your Google AI Studio account.

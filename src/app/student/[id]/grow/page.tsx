@@ -7,11 +7,13 @@ import { Coin } from "@/components/ui/Coin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SproutDoodle } from "@/components/ui/Doodles";
 import { getStudent } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
 import { getProjections, getGrowthPercentage } from "@/lib/growthCalculator";
 
 export default function GrowTokensPage() {
   const params = useParams();
   const studentId = params.id as string;
+  useStore();
 
   const student = getStudent(studentId);
   if (!student) return null;

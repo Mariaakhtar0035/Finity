@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronRight } from "lucide-react";
@@ -23,31 +23,23 @@ import { GrowthComparisonChart } from "@/components/GrowthComparisonChart";
 import { SpendingBehaviorCard } from "@/components/SpendingBehaviorCard";
 import { computeWhatIfGrow } from "@/lib/growthCalculator";
 import type { PendingReward } from "@/types";
+import { useStore } from "@/lib/useStore";
 
 export default function StudentDashboard() {
   const params = useParams();
   const studentId = params.id as string;
   const [claimingPending, setClaimingPending] = useState<PendingReward | null>(null);
   const [celebrate, setCelebrate] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const refresh = () => setRefreshKey((r) => r + 1);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const student = useMemo(() => getStudent(studentId), [studentId, refreshKey]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const missions = useMemo(() => getStudentMissions(studentId), [studentId, refreshKey]);
-  const pendingRewards = useMemo(
-    () => getPendingRewardsForStudent(studentId),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [studentId, refreshKey],
-  );
+  useStore();
+  const student = getStudent(studentId);
+  const missions = getStudentMissions(studentId);
+  const pendingRewards = getPendingRewardsForStudent(studentId);
 
   const handleClaim = (spendAmount: number, saveAmount: number, growAmount: number) => {
     if (!claimingPending) return;
     claimPendingReward(claimingPending.id, spendAmount, saveAmount, growAmount);
     setClaimingPending(null);
     setCelebrate(true);
-    refresh();
   };
 
   if (!student) return null;
@@ -186,7 +178,7 @@ export default function StudentDashboard() {
           spendTokens={student.spendTokens}
           saveTokens={student.saveTokens}
           growTokens={student.growTokens}
-          onTransfer={refresh}
+          onTransfer={() => {}}
         />
       </div>
     </div>

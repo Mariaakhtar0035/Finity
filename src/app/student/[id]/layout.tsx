@@ -21,12 +21,14 @@ import { MrsPennyworthPanel } from "@/components/MrsPennyworthPanel";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import {
   getStudent,
+  isHydrated,
   getStudentMissions,
   getAvailableMissions,
   getMissions,
   getRewards,
 } from "@/lib/store";
 import { NarratorPage } from "@/types";
+import { useStore } from "@/lib/useStore";
 
 const SESSION_KEY = "student_session";
 
@@ -35,6 +37,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const studentId = params.id as string;
+  useStore();
   const student = getStudent(studentId);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showPennyworthPanel, setShowPennyworthPanel] = useState(false);
@@ -58,6 +61,14 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       localStorage.removeItem(SESSION_KEY);
     }
   };
+
+  if (!student && !isHydrated()) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
 
   if (!student) {
     return (

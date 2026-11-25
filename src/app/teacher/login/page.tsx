@@ -3,20 +3,13 @@
 import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { PinPad } from "@/components/PinPad";
+import { DEMO_TEACHER_PIN, setTeacherSession } from "@/lib/useStore";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 
 export default function TeacherLoginPage() {
   const router = useRouter();
 
-  const verify = async (pin: string) => {
-    const response = await fetch("/api/teacher/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pin }),
-    });
-    const data = await response.json();
-    return !!data.success;
-  };
+  const verify = async (pin: string) => pin === DEMO_TEACHER_PIN;
 
   return (
     <AuthShell>
@@ -25,7 +18,13 @@ export default function TeacherLoginPage() {
         <h1 className="font-display text-3xl tracking-tight mt-5">Teacher sign in</h1>
         <p className="text-muted mt-1">Enter your 4-digit PIN to manage your class</p>
       </div>
-      <PinPad verify={verify} onSuccess={() => router.push("/teacher")} />
+      <PinPad
+        verify={verify}
+        onSuccess={() => {
+          setTeacherSession(true);
+          router.push("/teacher");
+        }}
+      />
     </AuthShell>
   );
 }

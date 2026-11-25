@@ -120,7 +120,9 @@ export function SpendingBehaviorCard({
     return () => {
       isMounted = false;
     };
-  }, [studentId, studentName, history, purchasedRewardItems, currentSpend, currentSave, currentGrow, saveGoal, availableRewards]);
+    // Only refetch when the student changes; the rest is read from the latest props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId]);
 
   const paragraphs = toParagraphs(insight ?? SPENDING_BEHAVIOR_FALLBACK);
 

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateExplanation } from "@/lib/gemini";
 import { ExplanationType } from "@/types";
+import { allowAiRequest } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!allowAiRequest(request)) {
+      // The client falls back to built-in answers on any non-OK response
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const { type, studentName, context } = await request.json();
 
     if (!type || !studentName) {

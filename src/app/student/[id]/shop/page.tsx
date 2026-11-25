@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Check } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,13 +12,14 @@ import { BagDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import { getRewards, getStudent, purchaseReward } from "@/lib/store";
 import { rewardTint } from "@/lib/palette";
+import { useStore } from "@/lib/useStore";
 import { RewardIcon } from "@/components/RewardIcon";
 
 export default function RewardShopPage() {
   const params = useParams();
-  const router = useRouter();
   const studentId = params.id as string;
-  const [student, setStudent] = useState(getStudent(studentId));
+  useStore();
+  const student = getStudent(studentId);
   const rewards = getRewards();
   const [modal, setModal] = useState<{ title: string; message: string; success: boolean } | null>(null);
   const [showSparkle, setShowSparkle] = useState(false);
@@ -30,13 +31,11 @@ export default function RewardShopPage() {
 
     if (result) {
       setShowSparkle(true);
-      setStudent(result.student);
       setModal({
         success: true,
         title: `${result.reward.title} is yours`,
         message: `You have ${result.student.spendTokens} Spend tokens left.`,
       });
-      setTimeout(() => router.refresh(), 100);
     } else {
       const reward = rewards.find((r) => r.id === rewardId);
       setModal(

@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { JarDoodle } from "@/components/ui/Doodles";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import { getStudent, updateStudent } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
 
 const DEFAULT_SAVE_GOAL = 200;
 
@@ -22,8 +23,7 @@ const TIPS = [
 export default function SaveTokensPage() {
   const params = useParams();
   const studentId = params.id as string;
-  const [, setRefresh] = useState(0);
-  const refresh = () => setRefresh((r) => r + 1);
+  useStore();
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [editValue, setEditValue] = useState("");
 
@@ -41,7 +41,6 @@ export default function SaveTokensPage() {
     updateStudent(studentId, { saveGoal: editNum });
     setIsEditingGoal(false);
     setEditValue("");
-    refresh();
   };
 
   return (

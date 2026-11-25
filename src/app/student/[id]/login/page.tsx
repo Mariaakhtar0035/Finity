@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { PinPad } from "@/components/PinPad";
 import { StudentAvatar } from "@/components/StudentAvatar";
-import { getStudent } from "@/lib/store";
+import { getStudent, isHydrated, verifyStudentPin } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
 
 const SESSION_KEY = "student_session";
 
@@ -13,9 +14,11 @@ export default function StudentLoginPage() {
   const params = useParams();
   const router = useRouter();
   const studentId = params.id as string;
+  useStore();
   const student = getStudent(studentId);
 
   if (!student) {
+    if (!isHydrated()) return <AuthShell>{null}</AuthShell>;
     return (
       <AuthShell>
         <div className="text-center">
@@ -28,15 +31,7 @@ export default function StudentLoginPage() {
     );
   }
 
-  const verify = async (pin: string) => {
-    const response = await fetch("/api/student/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId, pin }),
-    });
-    const data = await response.json();
-    return !!data.success;
-  };
+  const verify = async (pin: string) => verifyStudentPin(studentId, pin);
 
   return (
     <AuthShell>

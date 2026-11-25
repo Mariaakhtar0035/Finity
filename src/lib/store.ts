@@ -2,7 +2,16 @@ import { Student, Mission, Reward, MissionStatus, MissionBandColor, BalanceHisto
 import { generateHistoryFromCurrent } from "@/lib/growthCalculator";
 import { RECOMMENDED_SPEND_RATIO, RECOMMENDED_SAVE_RATIO, RECOMMENDED_GROW_RATIO } from "@/lib/constants";
 
-// In-memory data store - prepopulated with varied activity
+/*
+ * Demo data store.
+ *
+ * Finity's showcase build keeps all data in the visitor's browser: each
+ * visitor gets their own sandbox, saved to localStorage so progress survives
+ * a refresh. Changes are broadcast to subscribers (see useStore) and synced
+ * across tabs, so a teacher tab and a student tab stay in step.
+ */
+
+// Seed data — prepopulated with varied activity
 let students: Student[] = [
   {
     id: "alex",
@@ -266,7 +275,7 @@ let missions: Mission[] = [
   },
 ];
 
-const rewards: Reward[] = [
+let rewards: Reward[] = [
   {
     id: "reward-1",
     title: "Extra Deadline Extension",
@@ -341,6 +350,120 @@ const rewards: Reward[] = [
   },
 ];
 
+/* ------------------------------------------------------------------
+   Persistence + change notifications
+------------------------------------------------------------------- */
+const STORAGE_KEY = "finity-demo-v1";
+
+type Snapshot = {
+  students: Student[];
+  missions: Mission[];
+  rewards: Reward[];
+  pendingRewards: PendingReward[];
+};
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+// Captured before any mutation so "Reset demo" can restore it
+const SEED: Omit<Snapshot, "pendingRewards"> = clone({ students, missions, rewards });
+
+let version = 0;
+let lastChangedAt = Date.now();
+let commitScheduled = false;
+let hydrated = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  version += 1;
+  lastChangedAt = Date.now();
+  listeners.forEach((l) => l());
+}
+
+function save() {
+  if (typeof window === "undefined") return;
+  try {
+    const snapshot: Snapshot = { students, missions, rewards, pendingRewards };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // storage full or unavailable — the demo still works in memory
+  }
+}
+
+/** Mark state as changed; saves + notifies once after the current task */
+function touch() {
+  if (commitScheduled) return;
+  commitScheduled = true;
+  queueMicrotask(() => {
+    commitScheduled = false;
+    save();
+    emit();
+  });
+}
+
+function applySnapshot(snap: Snapshot) {
+  students = snap.students;
+  missions = snap.missions;
+  rewards = snap.rewards;
+  pendingRewards = snap.pendingRewards ?? [];
+}
+
+function loadFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const snap = JSON.parse(raw) as Snapshot;
+    if (!Array.isArray(snap.students) || !Array.isArray(snap.missions) || !Array.isArray(snap.rewards)) return false;
+    applySnapshot(snap);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Load saved demo data and start listening for changes from other tabs. Client-only, idempotent. */
+export function hydrateStore() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  loadFromStorage();
+  emit();
+  window.addEventListener("storage", (e) => {
+    if (e.key !== STORAGE_KEY) return;
+    if (e.newValue === null) applySnapshot({ ...clone(SEED), pendingRewards: [] });
+    else loadFromStorage();
+    emit();
+  });
+}
+
+export function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function isHydrated(): boolean {
+  return hydrated;
+}
+
+export function getVersion(): number {
+  return version;
+}
+
+export function getLastChangedAt(): Date {
+  return new Date(lastChangedAt);
+}
+
+/** Restore the original demo data (in this tab and any other open tabs) */
+export function resetDemo() {
+  applySnapshot({ ...clone(SEED), pendingRewards: [] });
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+  emit();
+}
+
 // Supply & Demand calculation
 export function calculateReward(baseReward: number, requestCount: number): number {
   if (requestCount === 0) return baseReward;
@@ -380,6 +503,7 @@ export function getBalanceHistory(studentId: string): BalanceHistoryEntry[] {
 }
 
 export function updateStudent(id: string, data: Partial<Student>): Student | null {
+  touch();
   const index = students.findIndex((s) => s.id === id);
   if (index === -1) return null;
   
@@ -393,6 +517,7 @@ export type CreateStudentData = {
 };
 
 export function createStudent(data: CreateStudentData): Student {
+  touch();
   const slug = data.name
     .trim()
     .toLowerCase()
@@ -429,6 +554,7 @@ export function getMission(id: string): Mission | undefined {
 }
 
 export function updateMission(id: string, data: Partial<Mission>): Mission | null {
+  touch();
   const index = missions.findIndex((m) => m.id === id);
   if (index === -1) return null;
   
@@ -444,6 +570,7 @@ export type CreateMissionData = {
 };
 
 export function createMission(data: CreateMissionData): Mission {
+  touch();
   const id = `mission-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const mission: Mission = {
     id,
@@ -461,6 +588,7 @@ export function createMission(data: CreateMissionData): Mission {
 }
 
 export function deleteMission(missionId: string): boolean {
+  touch();
   const index = missions.findIndex((m) => m.id === missionId);
   if (index === -1) return false;
   
@@ -477,6 +605,7 @@ export function deleteMission(missionId: string): boolean {
 }
 
 export function unassignMission(missionId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   if (!mission || !mission.assignedStudentId) return null;
   
@@ -493,6 +622,7 @@ export function unassignMission(missionId: string): Mission | null {
 }
 
 export function requestMission(studentId: string, missionId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   const student = getStudent(studentId);
   
@@ -511,17 +641,12 @@ export function requestMission(studentId: string, missionId: string): Mission | 
   // Update the mission in the array
   const updated = updateMission(missionId, mission);
   
-  // Log for debugging
-  console.log(`[requestMission] Updated mission ${missionId}:`, {
-    requestCount: updated?.requestCount,
-    currentReward: updated?.currentReward,
-    requestedBy: updated?.requestedBy.length,
-  });
   
   return updated;
 }
 
 export function assignMission(missionId: string, studentId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   const student = getStudent(studentId);
   
@@ -539,6 +664,15 @@ export function assignMission(missionId: string, studentId: string): Mission | n
   }
   
   return updateMission(missionId, mission);
+}
+
+/** Assign a mission to a student, moving it off any previous student first */
+export function assignOrReassignMission(missionId: string, studentId: string): Mission | null {
+  const mission = getMission(missionId);
+  if (mission?.assignedStudentId && mission.assignedStudentId !== studentId) {
+    unassignMission(missionId);
+  }
+  return assignMission(missionId, studentId);
 }
 
 let pendingRewards: PendingReward[] = [];
@@ -560,6 +694,7 @@ export function claimPendingReward(
   saveAmount: number,
   growAmount: number
 ): { mission: Mission; student: Student } | null {
+  touch();
   const index = pendingRewards.findIndex((p) => p.id === pendingId);
   if (index === -1) return null;
   const pending = pendingRewards[index]!;
@@ -591,6 +726,7 @@ export function transferTokens(
   from: TokenBucket,
   to: TokenBucket
 ): { student: Student } | null {
+  touch();
   const student = getStudent(studentId);
   if (!student) return null;
   if (amount <= 0) return null;
@@ -618,6 +754,7 @@ export function transferTokens(
 }
 
 export function completeMission(missionId: string): { mission: Mission; student: Student; pendingReward: PendingReward } | null {
+  touch();
   const mission = getMission(missionId);
   if (!mission || !mission.assignedStudentId) return null;
 
@@ -658,6 +795,7 @@ export type CreateRewardData = {
 };
 
 export function createReward(data: CreateRewardData): Reward {
+  touch();
   const id = `reward-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const reward: Reward = {
     id,
@@ -672,6 +810,7 @@ export function createReward(data: CreateRewardData): Reward {
 }
 
 export function updateReward(id: string, data: Partial<Reward>): Reward | null {
+  touch();
   const index = rewards.findIndex((r) => r.id === id);
   if (index === -1) return null;
   rewards[index] = { ...rewards[index], ...data };
@@ -679,6 +818,7 @@ export function updateReward(id: string, data: Partial<Reward>): Reward | null {
 }
 
 export function deleteReward(rewardId: string): boolean {
+  touch();
   const index = rewards.findIndex((r) => r.id === rewardId);
   if (index === -1) return false;
   // Remove from all students' purchasedRewards
@@ -693,6 +833,7 @@ export function deleteReward(rewardId: string): boolean {
 }
 
 export function purchaseReward(studentId: string, rewardId: string): { student: Student; reward: Reward } | null {
+  touch();
   const student = getStudent(studentId);
   const reward = rewards.find((r) => r.id === rewardId);
   

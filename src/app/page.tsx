@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/Doodles";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { MrsPennyworthAvatar, PennyworthPortrait } from "@/components/MrsPennyworthAvatar";
-import { getStudents } from "@/lib/store";
+import { getStudents, resetDemo } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
+import { useEffect } from "react";
 
 function scrollToChoosePlayer() {
   document.getElementById("choose-player")?.scrollIntoView({ behavior: "smooth" });
@@ -61,7 +63,18 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
+  useStore();
   const students = getStudents();
+
+  // Hidden maintenance hook: visiting /?reset restores the starting data
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("reset")) {
+      resetDemo();
+      url.searchParams.delete("reset");
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-paper overflow-x-hidden">

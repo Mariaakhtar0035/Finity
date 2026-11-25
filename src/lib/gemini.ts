@@ -296,10 +296,7 @@ export async function generateExplanation(
 
     const prompt = buildPrompt(type, studentName, context);
 
-    // #region agent log
     const useOR = hasOpenRouterKey();
-    fetch('http://127.0.0.1:7242/ingest/f38e6ae9-aec7-427b-b7e9-fa2897140ff4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gemini.ts:generateExplanation',message:'Provider check',data:{hasOpenRouterKey:useOR,hasKeySet:!!process.env.OPENROUTER_API_KEY},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     const maxTokens = type === "MONEY_STORY_INSIGHT" ? 450 : type === "SPENDING_BEHAVIOR_INSIGHT" ? 500 : 150;
     if (useOR) {
       const response = await callOpenRouter(

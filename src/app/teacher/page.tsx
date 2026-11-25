@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,12 @@ import { AssignMissionModal } from "@/components/AssignMissionModal";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import {
+  assignOrReassignMission,
+  completeMission,
+  getMissions,
+  getPendingApprovalMissions,
+  getRewards,
+  getStudents,
   getRecommendedSplit,
   createStudent,
   createMission,
@@ -34,30 +41,19 @@ import {
   updateReward,
   deleteReward,
 } from "@/lib/store";
-import { Mission, Reward, Student, MissionBandColor } from "@/types";
-
-async function fetchDashboard() {
-  const res = await fetch("/api/teacher/dashboard", {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache" },
-  });
-  if (!res.ok) throw new Error("Failed to fetch dashboard");
-  return res.json() as Promise<{
-    missions: Mission[];
-    students: Student[];
-    rewards: Reward[];
-    pendingMissions: Mission[];
-  }>;
-}
+import { Mission, Reward, MissionBandColor } from "@/types";
+import { useStore, hasTeacherSession, setTeacherSession } from "@/lib/useStore";
 
 type TeacherTab = "missions" | "rewards" | "requests" | "students";
 
 export default function TeacherDashboard() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [pendingMissions, setPendingMissions] = useState<Mission[]>([]);
-  const [rewards, setRewards] = useState<Reward[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  useStore();
+  const students = getStudents();
+  const missions = getMissions();
+  const rewards = getRewards();
+  const pendingMissions = getPendingApprovalMissions();
+  const [authorized, setAuthorized] = useState(false);
   const [message, setMessage] = useState("");
   const [showSparkle, setShowSparkle] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -73,59 +69,32 @@ export default function TeacherDashboard() {
   const [showStudentFormModal, setShowStudentFormModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TeacherTab>("missions");
 
-  const refreshData = () =>
-    fetchDashboard()
-      .then((data) => {
-        setStudents(data.students);
-        setMissions(data.missions);
-        setRewards(data.rewards);
-        setPendingMissions(data.pendingMissions);
-      })
-      .catch((err) => console.error("Failed to refresh dashboard:", err));
-
+  // Demo sign-in guard
   useEffect(() => {
-    refreshData().finally(() => setLoading(false));
-    const interval = setInterval(refreshData, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!hasTeacherSession()) router.replace("/teacher/login");
+    else setAuthorized(true);
+  }, [router]);
 
   const triggerSuccess = (msg: string, celebrate = false) => {
     setMessage(msg);
     if (celebrate) setShowSparkle(true);
-    refreshData();
     setTimeout(() => setMessage(""), 3500);
   };
 
-  const handleAssignMission = async (missionId: string, studentId: string) => {
-    try {
-      const res = await fetch("/api/teacher/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ missionId, studentId }),
-      });
-      if (!res.ok) throw new Error("Assign failed");
+  const handleAssignMission = (missionId: string, studentId: string) => {
+    if (assignOrReassignMission(missionId, studentId)) {
       const name = students.find((s) => s.id === studentId)?.name;
       triggerSuccess(`Mission assigned to ${name}.`);
-    } catch (err) {
-      console.error("Failed to assign mission:", err);
     }
   };
 
-  const handleApproveMission = async (missionId: string) => {
-    try {
-      const res = await fetch("/api/teacher/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ missionId }),
-      });
-      if (!res.ok) throw new Error("Complete failed");
-      const data = await res.json();
+  const handleApproveMission = (missionId: string) => {
+    const result = completeMission(missionId);
+    if (result) {
       triggerSuccess(
-        `Approved. ${data.student.name} has ${data.pendingReward.totalAmount} tokens to claim.`,
+        `Approved. ${result.student.name} has ${result.pendingReward.totalAmount} tokens to claim.`,
         true,
       );
-    } catch (err) {
-      console.error("Failed to approve mission:", err);
     }
   };
 
@@ -225,9 +194,9 @@ export default function TeacherDashboard() {
                 <TrendingUp className="w-4 h-4" /> <span className="hidden sm:inline">Market trends</span>
               </Button>
             </Link>
-            <Link href="/">
+            <Link href="/" onClick={() => setTeacherSession(false)}>
               <Button variant="ghost" size="sm">
-                <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Exit</span>
+                <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
               </Button>
             </Link>
           </div>
@@ -237,8 +206,8 @@ export default function TeacherDashboard() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
         <PageHeader eyebrow="Teacher dashboard" title="Your classroom economy" />
 
-        {loading ? (
-          <Loading text="Loading your class" />
+        {!authorized ? (
+          <Loading />
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

@@ -1,46 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { Mission } from "@/types";
 import { MarketLeaderboard } from "@/components/MarketLeaderboard";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LiveIndicator } from "@/components/ui/Feedback";
-import { Loading } from "@/components/ui/Loading";
+import { getLastChangedAt, getMissions } from "@/lib/store";
+import { useStore } from "@/lib/useStore";
 
 export default function LeaderboardPage() {
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const router = useRouter();
-
-  const fetchLeaderboardData = async (isAutoRefresh = false) => {
-    try {
-      if (isAutoRefresh) setRefreshing(true);
-      const res = await fetch(`/api/teacher/leaderboard?t=${Date.now()}`, {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      const data = await res.json();
-      setMissions(data.missions || []);
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error("Failed to fetch leaderboard:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeaderboardData();
-    const interval = setInterval(() => fetchLeaderboardData(true), 3000);
-    return () => clearInterval(interval);
-  }, []);
+  useStore();
 
   return (
     <div className="min-h-screen bg-paper">
@@ -58,13 +30,9 @@ export default function LeaderboardPage() {
           eyebrow="Classroom market"
           title="Supply & demand, live"
           description="Track how student demand changes mission rewards in real time."
-          action={
-            !loading && (
-              <LiveIndicator refreshing={refreshing} lastUpdate={lastUpdate} onRefresh={() => fetchLeaderboardData(true)} />
-            )
-          }
+          action={<LiveIndicator lastUpdate={getLastChangedAt()} />}
         />
-        {loading ? <Loading text="Loading market data" /> : <MarketLeaderboard missions={missions} />}
+        <MarketLeaderboard missions={[...getMissions()]} />
       </main>
     </div>
   );
