@@ -1,7 +1,9 @@
 import React from "react";
+import { JarDoodle } from "@/components/ui/Doodles";
 
 interface EmptyStateProps {
-  emoji: string;
+  /** Illustration; defaults to the coin jar doodle */
+  illustration?: React.ReactNode;
   title: string;
   description: string;
   action?: React.ReactNode;
@@ -9,7 +11,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  emoji,
+  illustration,
   title,
   description,
   action,
@@ -17,18 +19,14 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={`
-        bg-white rounded-3xl border-4 border-gray-800 p-12 text-center
-        shadow-[4px_4px_0_rgba(0,0,0,0.1)]
-        ${className}
-      `}
+      className={`bg-surface rounded-card border border-dashed border-line-strong px-6 py-14 text-center ${className}`}
     >
-      <div className="text-7xl mb-4 bounce-in">{emoji}</div>
-      <h2 className="font-display font-bold text-2xl text-gray-900 mb-2">
-        {title}
-      </h2>
-      <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">{description}</p>
-      {action}
+      <div className="flex justify-center mb-5">
+        {illustration ?? <JarDoodle className="w-20 h-auto" />}
+      </div>
+      <h2 className="font-display text-2xl tracking-tight text-ink mb-2">{title}</h2>
+      <p className="text-muted max-w-sm mx-auto">{description}</p>
+      {action && <div className="mt-6 flex justify-center">{action}</div>}
     </div>
   );
 }

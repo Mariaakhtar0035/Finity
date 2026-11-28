@@ -27,22 +27,14 @@ export function ConfirmDeleteModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="space-y-6">
-        <div className="flex justify-center">
-          <div className="text-6xl animate-bounce-in" aria-hidden>
-            🃏
-          </div>
-        </div>
-        <p className="text-center text-gray-700 font-display text-lg">{message}</p>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={onClose} className="flex-1">
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleConfirm} className="flex-1">
-            {confirmLabel}
-          </Button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} description={message}>
+      <div className="flex gap-3">
+        <Button variant="secondary" onClick={onClose} fullWidth>
+          Cancel
+        </Button>
+        <Button variant="danger" onClick={handleConfirm} fullWidth>
+          {confirmLabel}
+        </Button>
       </div>
     </Modal>
   );

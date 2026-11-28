@@ -4,28 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Mission, MissionBandColor, MISSION_BAND_COLORS } from "@/types";
-
-const BAND_LABELS: Record<MissionBandColor, string> = {
-  green: "Green Set",
-  darkBlue: "Dark Blue Set",
-  lightBlue: "Light Blue Set",
-  red: "Red Set",
-  yellow: "Yellow Set",
-  orange: "Orange Set",
-  brown: "Brown Set",
-  purple: "Purple",
-};
-
-const BAND_PREVIEW: Record<MissionBandColor, string> = {
-  green: "bg-green-600",
-  darkBlue: "bg-blue-800",
-  lightBlue: "bg-sky-400",
-  red: "bg-red-600",
-  yellow: "bg-amber-400",
-  orange: "bg-orange-500",
-  brown: "bg-amber-800",
-  purple: "bg-purple-600",
-};
+import { BAND_PALETTE } from "@/lib/palette";
 
 interface MissionFormModalProps {
   isOpen: boolean;
@@ -83,90 +62,83 @@ export function MissionFormModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEdit ? "Edit Mission" : "Add Mission"}
-    >
-      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? "Edit mission" : "New mission"}>
+      <form onSubmit={handleSubmit} className={`space-y-5 ${shake ? "shake" : ""}`} noValidate>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+          <label htmlFor="mission-title" className="label">Title</label>
           <input
+            id="mission-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.title ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
-            placeholder="e.g. Organize Classroom Library"
+            className="input"
+            aria-invalid={!!errors.title}
+            placeholder="e.g. Organize the classroom library"
           />
-          {errors.title && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.title}</p>
-          )}
+          {errors.title && <p className="text-negative text-sm mt-1.5">{errors.title}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
+          <label htmlFor="mission-description" className="label">Description</label>
           <textarea
+            id="mission-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display ${
-              errors.description ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
-            placeholder="Short, friendly description of the mission"
+            className="input resize-none"
+            aria-invalid={!!errors.description}
+            placeholder="A short, friendly description"
           />
-          {errors.description && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.description}</p>
-          )}
+          {errors.description && <p className="text-negative text-sm mt-1.5">{errors.description}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Base Token Reward</label>
+          <label htmlFor="mission-reward" className="label">Base reward</label>
           <input
+            id="mission-reward"
             type="number"
             min={1}
             value={baseReward}
             onChange={(e) => setBaseReward(Number(e.target.value) || 0)}
-            className={`w-full px-4 py-3 rounded-xl border-2 font-display text-lg ${
-              errors.baseReward ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
+            className="input num"
+            aria-invalid={!!errors.baseReward}
           />
-          {errors.baseReward && (
-            <p className="text-red-600 text-sm font-bold mt-1">{errors.baseReward}</p>
+          {errors.baseReward ? (
+            <p className="text-negative text-sm mt-1.5">{errors.baseReward}</p>
+          ) : (
+            <p className="text-muted text-sm mt-1.5">Drops automatically as more students request it.</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">Category / Top Color</label>
+          <p className="label">Colour</p>
           <div className="flex flex-wrap gap-2">
-            {MISSION_BAND_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => setBandColor(bandColor === color ? "" : color)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-display font-bold transition-all hover:-translate-y-0.5 ${
-                  bandColor === color
-                    ? "border-gray-800 shadow-md"
-                    : "border-gray-300 bg-gray-50"
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded-full ${BAND_PREVIEW[color]} border-2 border-gray-800`}
+            {MISSION_BAND_COLORS.map((color) => {
+              const active = bandColor === color;
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setBandColor(active ? "" : color)}
+                  className={`w-9 h-9 rounded-full border-2 border-ink transition-transform hover:scale-110 ${
+                    active ? "ring-2 ring-offset-2 ring-ink" : ""
+                  }`}
+                  style={{ background: BAND_PALETTE[color].fill }}
+                  aria-label={BAND_PALETTE[color].label}
+                  aria-pressed={active}
                 />
-                <span>{BAND_LABELS[color]}</span>
-              </button>
-            ))}
+              );
+            })}
           </div>
-          <p className="text-xs text-gray-500 mt-1">Optional. Picks a color automatically if left blank.</p>
+          <p className="text-muted text-sm mt-1.5">Optional. We&apos;ll pick one if you leave it blank.</p>
         </div>
 
         <div className="flex gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+          <Button variant="secondary" onClick={onClose} fullWidth>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" className="flex-1">
-            {isEdit ? "Save Mission" : "Add Mission"}
+          <Button type="submit" fullWidth>
+            {isEdit ? "Save changes" : "Add mission"}
           </Button>
         </div>
       </form>

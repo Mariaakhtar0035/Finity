@@ -1,21 +1,35 @@
 import type { Metadata } from "next";
-import { Nunito, Fredoka } from "next/font/google";
+import { Fraunces, Jost } from "next/font/google";
 import "./globals.css";
+import { GettingStarted } from "@/components/GettingStarted";
 
-const nunito = Nunito({
+const jost = Jost({
   subsets: ["latin"],
-  variable: "--font-nunito",
+  variable: "--font-jost",
+  display: "swap",
 });
 
-const fredoka = Fredoka({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-fredoka",
+  variable: "--font-fraunces",
+  axes: ["opsz", "SOFT"],
+  display: "swap",
 });
+
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000";
+
+const title = "Finity — Learn money by using it";
+const description =
+  "A classroom economy where students earn, save and grow tokens to build real money habits. Recommended for grades 3 to 6.";
 
 export const metadata: Metadata = {
-  title: "Classroom Economy",
-  description: "A fun financial literacy app for kids",
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  openGraph: { title, description, type: "website", siteName: "Finity" },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function RootLayout({
@@ -24,9 +38,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${nunito.variable} ${fredoka.variable} font-sans antialiased`}>
+    <html lang="en" className={`${jost.variable} ${fraunces.variable}`}>
+      <body className="font-sans antialiased">
         {children}
+        <GettingStarted />
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { askNarrator, AskNarratorContext, type RecentMessage } from "@/lib/gemini";
+import { allowAiRequest } from "@/lib/rateLimit";
 
 function parseContext(body: Record<string, unknown>): AskNarratorContext | undefined {
   const ctx = body.context;
@@ -55,6 +56,10 @@ function parseRecentMessages(body: Record<string, unknown>): RecentMessage[] {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!allowAiRequest(request)) {
+      // The client falls back to built-in answers on any non-OK response
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     const body = await request.json();
     const { studentName, question } = body;
 

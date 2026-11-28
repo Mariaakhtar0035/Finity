@@ -1,8 +1,33 @@
-import { Student, Mission, Reward, MissionStatus, MissionBandColor, BalanceHistoryEntry, PendingReward } from "@/types";
-import { generateHistoryFromCurrent } from "@/lib/growthCalculator";
+import { Student, GrowLock, Mission, Reward, MissionStatus, MissionBandColor, BalanceHistoryEntry, PendingReward, ActivityEntry, TourStep, StudentRoom } from "@/types";
+import { generateHistoryFromCurrent, WEEKLY_RATE } from "@/lib/growthCalculator";
+import {
+  ROOM_ITEMS,
+  DEFAULT_FLOORING,
+  DEFAULT_STYLE,
+  DEFAULT_WALLPAPER,
+  clampPos,
+  findSpot,
+  getRoomItem,
+  isRoomItemId,
+  itemsInStorage,
+  type PlacedRoomItem,
+  type RoomItem,
+  type RoomPos,
+  type WallSide,
+} from "@/lib/roomCatalog";
+import { cleanLook, getAccessory, lookOf, type AvatarLook } from "@/lib/avatar";
 import { RECOMMENDED_SPEND_RATIO, RECOMMENDED_SAVE_RATIO, RECOMMENDED_GROW_RATIO } from "@/lib/constants";
 
-// In-memory data store - prepopulated with varied activity
+/*
+ * Demo data store.
+ *
+ * Finity's showcase build keeps all data in the visitor's browser: each
+ * visitor gets their own sandbox, saved to localStorage so progress survives
+ * a refresh. Changes are broadcast to subscribers (see useStore) and synced
+ * across tabs, so a teacher tab and a student tab stay in step.
+ */
+
+// Seed data — prepopulated with varied activity
 let students: Student[] = [
   {
     id: "alex",
@@ -13,6 +38,7 @@ let students: Student[] = [
     growTokens: 95,
     assignedMissions: ["mission-1", "mission-5"],
     purchasedRewards: ["reward-2"],
+    saveGoalRewardId: "reward-3",
     balanceHistory: [
       { week: 1, spendBalance: 20, saveBalance: 6, growBalance: 10 },
       { week: 2, spendBalance: 55, saveBalance: 12, growBalance: 22 },
@@ -37,6 +63,7 @@ let students: Student[] = [
     growTokens: 82,
     assignedMissions: ["mission-2"],
     purchasedRewards: ["reward-1", "reward-2"],
+    saveGoalRewardId: "reward-10",
     balanceHistory: [
       { week: 1, spendBalance: 30, saveBalance: 3, growBalance: 15 },
       { week: 2, spendBalance: 65, saveBalance: 6, growBalance: 28 },
@@ -59,6 +86,7 @@ let students: Student[] = [
     growTokens: 120,
     assignedMissions: ["mission-3"],
     purchasedRewards: ["reward-1", "reward-3"],
+    saveGoalRewardId: "reward-4",
   },
   {
     id: "riley",
@@ -87,6 +115,186 @@ let students: Student[] = [
     spendTokens: 100,
     saveTokens: 35,
     growTokens: 50,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "aiden",
+    name: "Aiden",
+    pin: "1234",
+    spendTokens: 122,
+    saveTokens: 29,
+    growTokens: 121,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "amara",
+    name: "Amara",
+    pin: "1234",
+    spendTokens: 206,
+    saveTokens: 16,
+    growTokens: 38,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "ben",
+    name: "Ben",
+    pin: "1234",
+    spendTokens: 250,
+    saveTokens: 78,
+    growTokens: 44,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "chloe",
+    name: "Chloe",
+    pin: "1234",
+    spendTokens: 133,
+    saveTokens: 84,
+    growTokens: 34,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "daniel",
+    name: "Daniel",
+    pin: "1234",
+    spendTokens: 169,
+    saveTokens: 37,
+    growTokens: 29,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "elena",
+    name: "Elena",
+    pin: "1234",
+    spendTokens: 62,
+    saveTokens: 65,
+    growTokens: 127,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "ethan",
+    name: "Ethan",
+    pin: "1234",
+    spendTokens: 57,
+    saveTokens: 40,
+    growTokens: 43,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "fatima",
+    name: "Fatima",
+    pin: "1234",
+    spendTokens: 181,
+    saveTokens: 64,
+    growTokens: 35,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "grace",
+    name: "Grace",
+    pin: "1234",
+    spendTokens: 251,
+    saveTokens: 82,
+    growTokens: 51,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "hiro",
+    name: "Hiro",
+    pin: "1234",
+    spendTokens: 97,
+    saveTokens: 90,
+    growTokens: 35,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "isla",
+    name: "Isla",
+    pin: "1234",
+    spendTokens: 187,
+    saveTokens: 84,
+    growTokens: 121,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "jamal",
+    name: "Jamal",
+    pin: "1234",
+    spendTokens: 52,
+    saveTokens: 38,
+    growTokens: 31,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "leah",
+    name: "Leah",
+    pin: "1234",
+    spendTokens: 182,
+    saveTokens: 119,
+    growTokens: 54,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "lucas",
+    name: "Lucas",
+    pin: "1234",
+    spendTokens: 114,
+    saveTokens: 63,
+    growTokens: 56,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "maya",
+    name: "Maya",
+    pin: "1234",
+    spendTokens: 178,
+    saveTokens: 25,
+    growTokens: 98,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "noah",
+    name: "Noah",
+    pin: "1234",
+    spendTokens: 183,
+    saveTokens: 114,
+    growTokens: 66,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "olivia",
+    name: "Olivia",
+    pin: "1234",
+    spendTokens: 66,
+    saveTokens: 84,
+    growTokens: 68,
+    assignedMissions: [],
+    purchasedRewards: [],
+  },
+  {
+    id: "priya",
+    name: "Priya",
+    pin: "1234",
+    spendTokens: 135,
+    saveTokens: 22,
+    growTokens: 36,
     assignedMissions: [],
     purchasedRewards: [],
   },
@@ -266,34 +474,34 @@ let missions: Mission[] = [
   },
 ];
 
-const rewards: Reward[] = [
+let rewards: Reward[] = [
   {
     id: "reward-1",
     title: "Extra Deadline Extension",
     description: "Get 2 extra days for any assignment",
     cost: 50,
-    icon: "⏰",
+    icon: "clock",
   },
   {
     id: "reward-2",
     title: "Test Hint Card",
     description: "Get one helpful hint during a test",
     cost: 30,
-    icon: "💡",
+    icon: "lightbulb",
   },
   {
     id: "reward-3",
     title: "Homework Pass",
     description: "Skip one homework assignment",
     cost: 80,
-    icon: "📝",
+    icon: "notebook",
   },
   {
     id: "reward-4",
     title: "Mystery Reward",
     description: "A surprise reward chosen by your teacher!",
     cost: 100,
-    icon: "🎁",
+    icon: "gift",
     soldOut: false,
   },
   {
@@ -301,21 +509,21 @@ const rewards: Reward[] = [
     title: "Choose the Class Game",
     description: "Pick the game for Friday fun time",
     cost: 45,
-    icon: "🎮",
+    icon: "gamepad",
   },
   {
     id: "reward-6",
     title: "Sit by a Friend",
     description: "Choose your seat for one day",
     cost: 25,
-    icon: "🪑",
+    icon: "chair",
   },
   {
     id: "reward-7",
     title: "Lunch with the Teacher",
     description: "Special lunch in the classroom",
     cost: 120,
-    icon: "🍽️",
+    icon: "lunch",
     soldOut: true,
   },
   {
@@ -323,23 +531,785 @@ const rewards: Reward[] = [
     title: "No Uniform Day Pass",
     description: "Wear your favorite outfit to school",
     cost: 75,
-    icon: "👕",
+    icon: "shirt",
   },
   {
     id: "reward-9",
     title: "Extra Recess Time",
     description: "5 extra minutes at recess",
     cost: 40,
-    icon: "⚽",
+    icon: "ball",
   },
   {
     id: "reward-10",
     title: "Class DJ for a Day",
     description: "Pick the music during work time",
     cost: 60,
-    icon: "🎵",
+    icon: "music",
   },
 ];
+
+/* ------------------------------------------------------------------
+   Classroom
+------------------------------------------------------------------- */
+export const CLASSROOM = {
+  name: "Grade 4 · Room 204",
+  /** Shown to teachers as FIN-482; students can type it with or without the dash */
+  code: "FIN482",
+};
+
+/** Normalize what a student typed: uppercase, letters and digits only */
+export function normalizeClassCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export function formatClassCode(code: string = CLASSROOM.code): string {
+  return code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code;
+}
+
+export function verifyClassCode(input: string): boolean {
+  return normalizeClassCode(input) === CLASSROOM.code;
+}
+
+/* ------------------------------------------------------------------
+   Persistence + change notifications
+------------------------------------------------------------------- */
+const STORAGE_KEY = "finity-demo-v6";
+
+type Snapshot = {
+  students: Student[];
+  missions: Mission[];
+  rewards: Reward[];
+  pendingRewards: PendingReward[];
+  currentWeek: number;
+  activity: ActivityEntry[];
+  tour: Partial<Record<TourStep, boolean>>;
+  tourDismissed: boolean;
+};
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+/** The class starts in week 12 of the school term */
+const SEED_WEEK = 12;
+let currentWeek = SEED_WEEK;
+let activity: ActivityEntry[] = [];
+let tour: Partial<Record<TourStep, boolean>> = {};
+let tourDismissed = false;
+
+let roomUidCounter = 0;
+const newRoomUid = () => `r${Date.now().toString(36)}${(roomUidCounter++).toString(36)}`;
+
+/** Where the starter things go in a new room */
+const STARTER_LAYOUT: Omit<PlacedRoomItem, "uid">[] = [
+  { itemId: "room-sunny-window", wall: "left", x: 2, y: 100 },
+  { itemId: "room-cozy-bed", x: 0.75, y: 1.6 },
+  { itemId: "room-lavender-rug", x: 3.9, y: 3.9 },
+];
+
+/** A new room: the free starters, already arranged */
+function starterRoom(): StudentRoom {
+  return {
+    owned: Object.fromEntries(ROOM_ITEMS.filter((i) => i.starter).map((i) => [i.id, 1])),
+    items: STARTER_LAYOUT.map((p) => ({ ...p, uid: newRoomUid() })),
+    style: DEFAULT_STYLE,
+    wallpaper: DEFAULT_WALLPAPER,
+    flooring: DEFAULT_FLOORING,
+    likes: [],
+  };
+}
+
+type SeedPlacement = [itemId: string, x: number, y: number, wall?: WallSide | null, flip?: boolean];
+type SeedRoom = {
+  style?: string;
+  wallpaper?: string;
+  flooring?: string;
+  /** Replaces the starter layout when given */
+  layout?: SeedPlacement[];
+  /** Owned but kept in storage */
+  stored?: string[];
+  likes?: string[];
+};
+
+/** Hand-arranged rooms for a few classmates, so visiting is fun */
+const SEED_ROOMS: Record<string, SeedRoom> = {
+  alex: {
+    layout: [
+      ["room-sunny-window", 2, 100, "left"],
+      ["room-save-poster", 4.4, 104, "right"],
+      ["room-cozy-bed", 0.75, 1.6],
+      ["room-lavender-rug", 3.9, 3.9],
+      ["room-bean-bag", 5.2, 0.9],
+      ["room-monstera", 0.5, 6.4],
+    ],
+    stored: ["room-wall-clock"],
+    likes: ["jordan", "sam", "maya"],
+  },
+  jordan: {
+    style: "room-style-treehouse",
+    wallpaper: "room-paper-mint-stripes",
+    layout: [
+      ["room-starry-window", 2.2, 102, "left"],
+      ["room-string-lights", 4.2, 150, "right"],
+      ["room-rocket-poster", 1.4, 100, "right"],
+      ["room-cozy-bed", 0.75, 1.6],
+      ["room-study-desk", 4, 0.55, null, true],
+      ["room-lavender-rug", 4.3, 4.6],
+      ["room-cactus", 0.5, 7.2],
+      ["room-cozy-lamp", 6.4, 0.5],
+    ],
+    stored: ["room-sunny-window"],
+    likes: ["maya", "sam", "riley", "amara"],
+  },
+  sam: {
+    wallpaper: "room-paper-lavender-stars",
+    flooring: "room-floor-checker",
+    layout: [
+      ["room-sunny-window", 4.6, 100, "left"],
+      ["room-bookshelf", 3.8, 128, "right"],
+      ["room-cozy-bed", 0.75, 1.6],
+      ["room-couch", 3.8, 0.55, null, true],
+      ["room-bookcase", 0.35, 3.6],
+      ["room-cozy-lamp", 6.3, 0.4],
+      ["room-monstera", 0.45, 6.4],
+      ["room-mint-rug", 4.2, 3.9, null, true],
+    ],
+    likes: ["jordan", "leah"],
+  },
+  maya: {
+    style: "room-style-loft",
+    wallpaper: "room-paper-sky-clouds",
+    flooring: "room-floor-mint-carpet",
+    layout: [
+      ["room-sunny-window", 2.4, 112, "left"],
+      ["room-string-lights", 4.5, 172, "right"],
+      ["room-save-poster", 6.6, 110, "left"],
+      ["room-cozy-bed", 0.75, 1.6],
+      ["room-mint-rug", 4.8, 4.6, null, true],
+      ["room-bean-bag", 1.2, 7.4],
+      ["room-cat", 5.2, 5.2],
+      ["room-toy-chest", 7.6, 0.7, null, true],
+      ["room-monstera", 8.4, 0.5],
+      ["room-cactus", 0.45, 4.2],
+    ],
+    likes: ["alex", "jordan", "sam", "riley", "priya", "noah"],
+  },
+};
+
+/** Other classmates get the starter room plus one extra and their own wallpaper */
+const SEED_ROOM_ROTATION = ["room-monstera", "room-save-poster", "room-cactus", "room-mint-rug", "room-toy-chest", "room-wall-clock", ""];
+const SEED_WALLPAPER_ROTATION = [DEFAULT_WALLPAPER, "room-paper-peach-check", "room-paper-mint-stripes", DEFAULT_WALLPAPER, "room-paper-sky-clouds"];
+
+function seedRoom(studentId: string, index: number): StudentRoom {
+  const room = starterRoom();
+  const spec = SEED_ROOMS[studentId];
+  const own = (id: string) => (room.owned[id] = (room.owned[id] ?? 0) + (getRoomItem(id)?.starter ? 0 : 1));
+  if (!spec) {
+    room.wallpaper = SEED_WALLPAPER_ROTATION[index % SEED_WALLPAPER_ROTATION.length];
+    const extra = getRoomItem(SEED_ROOM_ROTATION[index % SEED_ROOM_ROTATION.length]);
+    if (extra) {
+      own(extra.id);
+      room.items.push({ uid: `${studentId}-x`, itemId: extra.id, ...findSpot(extra, room.items, room.style) });
+    }
+    if (room.wallpaper !== DEFAULT_WALLPAPER) room.owned[room.wallpaper] = 1;
+    return room;
+  }
+  for (const key of ["style", "wallpaper", "flooring"] as const) {
+    const id = spec[key];
+    if (id) {
+      room[key] = id;
+      room.owned[id] = 1;
+    }
+  }
+  if (spec.layout) {
+    room.items = spec.layout.map(([itemId, x, y, wall, flip], i) => {
+      own(itemId);
+      return { uid: `${studentId}-${i}`, itemId, x, y, ...(wall ? { wall } : {}), ...(flip ? { flip } : {}) };
+    });
+  }
+  spec.stored?.forEach(own);
+  room.likes = spec.likes ?? [];
+  return room;
+}
+
+/* Give every seeded student a 12-week history that ends at today's balances,
+   plus a few past purchases in their activity feed. */
+(function prepareSeed() {
+  students.forEach((s, index) => {
+    s.room = seedRoom(s.id, index);
+
+    let h = s.balanceHistory?.length
+      ? s.balanceHistory
+      : generateHistoryFromCurrent(s.spendTokens, s.saveTokens, s.growTokens, SEED_WEEK);
+    const offset = SEED_WEEK - h[h.length - 1].week;
+    h = h.map((e) => ({ ...e, week: e.week + offset }));
+    while (h[0].week > 1) h.unshift({ week: h[0].week - 1, spendBalance: 0, saveBalance: 0, growBalance: 0 });
+    h[h.length - 1] = { week: SEED_WEEK, spendBalance: s.spendTokens, saveBalance: s.saveTokens, growBalance: s.growTokens };
+    s.balanceHistory = h;
+
+    s.purchasedRewards.forEach((rid, i) => {
+      const reward = rewards.find((r) => r.id === rid);
+      if (!reward) return;
+      const week = Math.max(1, SEED_WEEK - 2 - i * 3);
+      activity.push({
+        id: `seed-${s.id}-${rid}`,
+        studentId: s.id,
+        week,
+        kind: "spent",
+        title: `Bought ${reward.title}`,
+        spend: -reward.cost,
+        save: 0,
+        grow: 0,
+        at: week,
+      });
+    });
+  });
+  activity.sort((a, b) => b.week - a.week);
+})();
+
+// Captured before any mutation so "Reset demo" can restore it
+const SEED: Snapshot = clone({
+  students,
+  missions,
+  rewards,
+  pendingRewards: [],
+  currentWeek,
+  activity,
+  tour: {},
+  tourDismissed: false,
+});
+
+let version = 0;
+let lastChangedAt = Date.now();
+let commitScheduled = false;
+let hydrated = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  version += 1;
+  lastChangedAt = Date.now();
+  listeners.forEach((l) => l());
+}
+
+function save() {
+  if (typeof window === "undefined") return;
+  try {
+    const snapshot: Snapshot = {
+      students,
+      missions,
+      rewards,
+      pendingRewards,
+      currentWeek,
+      activity,
+      tour,
+      tourDismissed,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // storage full or unavailable — the demo still works in memory
+  }
+}
+
+/** Mark state as changed; saves + notifies once after the current task */
+function touch() {
+  if (commitScheduled) return;
+  commitScheduled = true;
+  queueMicrotask(() => {
+    commitScheduled = false;
+    save();
+    emit();
+  });
+}
+
+function applySnapshot(snap: Snapshot) {
+  students = snap.students;
+  missions = snap.missions;
+  rewards = snap.rewards;
+  pendingRewards = snap.pendingRewards ?? [];
+  currentWeek = snap.currentWeek ?? SEED_WEEK;
+  activity = snap.activity ?? [];
+  tour = snap.tour ?? {};
+  tourDismissed = snap.tourDismissed ?? false;
+}
+
+function loadFromStorage(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const snap = JSON.parse(raw) as Snapshot;
+    if (!Array.isArray(snap.students) || !Array.isArray(snap.missions) || !Array.isArray(snap.rewards)) return false;
+    applySnapshot(snap);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Load saved demo data and start listening for changes from other tabs. Client-only, idempotent. */
+export function hydrateStore() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  loadFromStorage();
+  emit();
+  window.addEventListener("storage", (e) => {
+    if (e.key !== STORAGE_KEY) return;
+    if (e.newValue === null) applySnapshot(clone(SEED));
+    else loadFromStorage();
+    emit();
+  });
+}
+
+export function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function isHydrated(): boolean {
+  return hydrated;
+}
+
+export function getVersion(): number {
+  return version;
+}
+
+export function getLastChangedAt(): Date {
+  return new Date(lastChangedAt);
+}
+
+/** Restore the original demo data (in this tab and any other open tabs) */
+export function resetDemo() {
+  applySnapshot(clone(SEED));
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+  emit();
+}
+
+/* ------------------------------------------------------------------
+   Weeks, balance history, activity feed and the first-visit checklist
+------------------------------------------------------------------- */
+const BUCKET_LABEL: Record<TokenBucket, string> = { spend: "Spend", save: "Save", grow: "Grow" };
+
+/** Record a student's balances for the current week (replaces this week's entry) */
+function snapshotBalances(student: Student) {
+  const entry: BalanceHistoryEntry = {
+    week: currentWeek,
+    spendBalance: student.spendTokens,
+    saveBalance: student.saveTokens,
+    growBalance: student.growTokens,
+  };
+  const h = student.balanceHistory ?? (student.balanceHistory = []);
+  if (h.length && h[h.length - 1].week === currentWeek) h[h.length - 1] = entry;
+  else h.push(entry);
+}
+
+function logActivity(entry: Omit<ActivityEntry, "id" | "week" | "at">) {
+  activity.unshift({
+    ...entry,
+    id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    week: currentWeek,
+    at: Date.now(),
+  });
+  if (activity.length > 1000) activity.length = 1000;
+}
+
+function markTour(step: TourStep) {
+  tour[step] = true;
+}
+
+export function getCurrentWeek(): number {
+  return currentWeek;
+}
+
+export function getActivity(studentId: string): ActivityEntry[] {
+  return activity.filter((a) => a.studentId === studentId);
+}
+
+/** Total Grow tokens a student has earned from weekly interest */
+export function getInterestEarned(studentId: string): number {
+  return activity
+    .filter((a) => a.studentId === studentId && a.kind === "interest")
+    .reduce((sum, a) => sum + a.grow, 0);
+}
+
+/**
+ * Move the class forward one week: every student's Grow balance earns 2%
+ * (at least 1 token if they have any), and a new history point is recorded.
+ */
+export function advanceWeek(): { week: number; totalInterest: number } {
+  touch();
+  currentWeek += 1;
+  let totalInterest = 0;
+  students.forEach((s) => {
+    if (s.growLocks?.length) s.growLocks = s.growLocks.filter((l) => l.untilWeek > currentWeek);
+    const interest = s.growTokens > 0 ? Math.max(1, Math.round(s.growTokens * WEEKLY_RATE)) : 0;
+    s.growTokens += interest;
+    totalInterest += interest;
+    snapshotBalances(s);
+    if (interest > 0) {
+      logActivity({ studentId: s.id, kind: "interest", title: "Weekly Grow interest", spend: 0, save: 0, grow: interest });
+    }
+  });
+  markTour("advance");
+  return { week: currentWeek, totalInterest };
+}
+
+export function getTour(): Partial<Record<TourStep, boolean>> {
+  return tour;
+}
+
+export function isTourDismissed(): boolean {
+  return tourDismissed;
+}
+
+export function setTourDismissed(dismissed: boolean) {
+  touch();
+  tourDismissed = dismissed;
+}
+
+/* ------------------------------------------------------------------
+   Saving toward a reward
+------------------------------------------------------------------- */
+export const DEFAULT_SAVE_GOAL = 200;
+
+export type SaveGoal =
+  | { kind: "reward"; reward: Reward; target: number }
+  | { kind: "room"; item: RoomItem; target: number }
+  | { kind: "amount"; target: number };
+
+/** Display name of whatever the goal is */
+export function saveGoalTitle(goal: SaveGoal): string {
+  if (goal.kind === "reward") return goal.reward.title;
+  if (goal.kind === "room") return goal.item.name;
+  return `${goal.target} tokens`;
+}
+
+/** The student's current goal: a reward they picked, else a custom amount */
+export function getSaveGoal(student: Student): SaveGoal {
+  const roomItem = isRoomItemId(student.saveGoalRewardId) ? getRoomItem(student.saveGoalRewardId) : undefined;
+  if (roomItem) return { kind: "room", item: roomItem, target: roomItem.cost };
+  const reward = student.saveGoalRewardId ? getReward(student.saveGoalRewardId) : undefined;
+  if (reward) return { kind: "reward", reward, target: reward.cost };
+  return { kind: "amount", target: student.saveGoal ?? DEFAULT_SAVE_GOAL };
+}
+
+export function setSaveGoalReward(studentId: string, rewardId: string | null): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student) return false;
+  if (rewardId && !getReward(rewardId) && !getRoomItem(rewardId)) return false;
+  student.saveGoalRewardId = rewardId ?? undefined;
+  return true;
+}
+
+/**
+ * Average Save tokens added per week over the last few weeks, or 0 if the
+ * balance hasn't been growing. Used for "about N weeks to go".
+ */
+export function getWeeklySavePace(student: Student, weeks = 4): number {
+  const h = student.balanceHistory ?? [];
+  if (h.length < 2) return 0;
+  const recent = h.slice(-(weeks + 1));
+  const gained = recent[recent.length - 1].saveBalance - recent[0].saveBalance;
+  const pace = gained / (recent.length - 1);
+  return pace > 0 ? pace : 0;
+}
+
+/** Spend Save tokens on the goal reward once the student has saved enough */
+export function buyWithSavings(studentId: string, rewardId: string): { student: Student; title: string } | null {
+  if (isRoomItemId(rewardId)) {
+    const result = buyRoomItem(studentId, rewardId, "save");
+    return result ? { student: result.student, title: result.item.name } : null;
+  }
+  touch();
+  const student = getStudent(studentId);
+  const reward = getReward(rewardId);
+  if (!student || !reward || reward.soldOut) return null;
+  if (student.purchasedRewards.includes(rewardId)) return null;
+  if (student.saveTokens < reward.cost) return null;
+
+  student.saveTokens -= reward.cost;
+  student.purchasedRewards.push(rewardId);
+  if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
+  snapshotBalances(student);
+  logActivity({ studentId, kind: "spent", title: `Bought ${reward.title} with savings`, spend: 0, save: -reward.cost, grow: 0 });
+  markTour("buy");
+  return { student, title: reward.title };
+}
+
+/* ------------------------------------------------------------------
+   My room
+------------------------------------------------------------------- */
+
+/** The student's room (created with the starter items if missing or from an older save) */
+export function getRoom(studentId: string): StudentRoom {
+  const student = getStudent(studentId);
+  if (!student) return starterRoom();
+  if (!student.room || !Array.isArray(student.room.items)) student.room = starterRoom();
+  return student.room;
+}
+
+/** How many of each item are owned but not out in the room */
+export function getRoomStorage(studentId: string): Record<string, number> {
+  const room = getRoom(studentId);
+  return itemsInStorage(room.owned, room.items);
+}
+
+/**
+ * Buy something for the room. Furniture and decor go straight into a free spot
+ * (the new placement's uid is returned); walls, floors and rooms are put to use.
+ * Spend tokens by default.
+ */
+export function buyRoomItem(
+  studentId: string,
+  itemId: string,
+  bucket: "spend" | "save" = "spend",
+): { student: Student; item: RoomItem; uid?: string } | null {
+  touch();
+  const student = getStudent(studentId);
+  const item = getRoomItem(itemId);
+  if (!student || !item) return null;
+  const room = getRoom(studentId);
+  const have = room.owned[itemId] ?? 0;
+  if (item.kind !== "item" && have > 0) return null;
+  if (item.max !== undefined && have >= item.max) return null;
+  const balance = bucket === "spend" ? student.spendTokens : student.saveTokens;
+  if (balance < item.cost) return null;
+
+  if (bucket === "spend") student.spendTokens -= item.cost;
+  else student.saveTokens -= item.cost;
+  room.owned[itemId] = have + 1;
+  let uid: string | undefined;
+  if (item.kind === "item") {
+    uid = newRoomUid();
+    room.items.push({ uid, itemId, ...findSpot(item, room.items, room.style) });
+  } else {
+    applyFinish(room, item);
+  }
+  if (student.saveGoalRewardId === itemId) student.saveGoalRewardId = undefined;
+
+  snapshotBalances(student);
+  if (item.cost > 0) {
+    logActivity({
+      studentId,
+      kind: "spent",
+      title: `Bought ${item.name} for your room${bucket === "save" ? " with savings" : ""}`,
+      spend: bucket === "spend" ? -item.cost : 0,
+      save: bucket === "save" ? -item.cost : 0,
+      grow: 0,
+    });
+  }
+  markTour("buy");
+  return { student, item, uid };
+}
+
+function applyFinish(room: StudentRoom, item: RoomItem) {
+  if (item.kind === "wallpaper") room.wallpaper = item.id;
+  else if (item.kind === "flooring") room.flooring = item.id;
+  else if (item.kind === "style") {
+    room.style = item.id;
+    // A smaller room: pull everything back inside the walls
+    room.items = room.items.map((p) => {
+      const def = getRoomItem(p.itemId);
+      return def ? { ...p, ...clampPos(def, p, room.style, p.flip) } : p;
+    });
+  }
+}
+
+/** Switch to a wallpaper, floor or room the student already owns */
+export function applyRoomFinish(studentId: string, itemId: string): boolean {
+  touch();
+  const room = getRoom(studentId);
+  const item = getRoomItem(itemId);
+  if (!item || item.kind === "item" || !room.owned[itemId]) return false;
+  applyFinish(room, item);
+  return true;
+}
+
+/** Take an owned item out of storage and put it in a free spot. Returns its uid. */
+export function placeRoomItem(studentId: string, itemId: string): string | null {
+  touch();
+  const item = getRoomItem(itemId);
+  const room = getRoom(studentId);
+  if (!item || item.kind !== "item" || !itemsInStorage(room.owned, room.items)[itemId]) return null;
+  const uid = newRoomUid();
+  room.items.push({ uid, itemId, ...findSpot(item, room.items, room.style) });
+  return uid;
+}
+
+/** Move a placed item (kept inside the room) */
+export function moveRoomItem(studentId: string, uid: string, pos: RoomPos): boolean {
+  touch();
+  const room = getRoom(studentId);
+  const placed = room.items.find((p) => p.uid === uid);
+  const item = getRoomItem(placed?.itemId);
+  if (!placed || !item) return false;
+  const next = clampPos(item, pos, room.style, placed.flip);
+  placed.x = next.x;
+  placed.y = next.y;
+  if (item.place === "wall") placed.wall = next.wall;
+  return true;
+}
+
+/** Turn a floor item to face the other way */
+export function flipRoomItem(studentId: string, uid: string): boolean {
+  touch();
+  const room = getRoom(studentId);
+  const placed = room.items.find((p) => p.uid === uid);
+  const item = getRoomItem(placed?.itemId);
+  if (!placed || !item || item.place === "wall") return false;
+  placed.flip = !placed.flip;
+  Object.assign(placed, clampPos(item, placed, room.style, placed.flip));
+  return true;
+}
+
+/** Put a placed item back in storage (it stays owned) */
+export function removeRoomItem(studentId: string, uid: string): boolean {
+  touch();
+  const room = getRoom(studentId);
+  const before = room.items.length;
+  room.items = room.items.filter((p) => p.uid !== uid);
+  return room.items.length < before;
+}
+
+/* ------------------------------------------------------------------
+   The student's character
+------------------------------------------------------------------- */
+
+/** Change how the character looks (skin, hair, shirt). Unknown values are ignored. */
+export function setLook(studentId: string, changes: Partial<AvatarLook>): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student) return false;
+  student.look = { ...lookOf(student), ...cleanLook(changes) };
+  return true;
+}
+
+/** Buy an accessory with Spend tokens and put it on */
+export function buyAccessory(studentId: string, accessoryId: string): boolean {
+  touch();
+  const student = getStudent(studentId);
+  const acc = getAccessory(accessoryId);
+  if (!student || !acc) return false;
+  const owned = student.accessories ?? [];
+  if (owned.includes(acc.id) || student.spendTokens < acc.cost) return false;
+  student.spendTokens -= acc.cost;
+  student.accessories = [...owned, acc.id];
+  student.look = { ...lookOf(student), accessory: acc.id };
+  snapshotBalances(student);
+  logActivity({ studentId, kind: "spent", title: `Bought ${acc.name} for your character`, spend: -acc.cost, save: 0, grow: 0 });
+  markTour("buy");
+  return true;
+}
+
+/** Put on an accessory they own, or take it off (null) */
+export function wearAccessory(studentId: string, accessoryId: string | null): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student) return false;
+  if (accessoryId && !(student.accessories ?? []).includes(accessoryId)) return false;
+  student.look = { ...lookOf(student), accessory: accessoryId };
+  return true;
+}
+
+/** Like or unlike a classmate's room. Returns whether it's liked now. */
+export function toggleRoomLike(visitorId: string, ownerId: string): boolean {
+  touch();
+  if (visitorId === ownerId || !getStudent(visitorId)) return false;
+  const room = getRoom(ownerId);
+  const liked = room.likes.includes(visitorId);
+  room.likes = liked ? room.likes.filter((id) => id !== visitorId) : [...room.likes, visitorId];
+  return !liked;
+}
+
+/* ------------------------------------------------------------------
+   Class-wide insights
+------------------------------------------------------------------- */
+
+/** Sum of every student's Spend / Save / Grow balance for each week on record */
+export function getClassHistory(): BalanceHistoryEntry[] {
+  const byWeek = new Map<number, BalanceHistoryEntry>();
+  students.forEach((s) => {
+    (s.balanceHistory ?? []).forEach((e) => {
+      const row = byWeek.get(e.week) ?? { week: e.week, spendBalance: 0, saveBalance: 0, growBalance: 0 };
+      row.spendBalance += e.spendBalance;
+      row.saveBalance += e.saveBalance;
+      row.growBalance += e.growBalance;
+      byWeek.set(e.week, row);
+    });
+  });
+  return [...byWeek.values()].sort((a, b) => a.week - b.week);
+}
+
+/** Total Grow interest paid to the whole class */
+export function getClassInterestPaid(): number {
+  return activity.filter((a) => a.kind === "interest").reduce((sum, a) => sum + a.grow, 0);
+}
+
+/* ------------------------------------------------------------------
+   Teacher tools
+------------------------------------------------------------------- */
+
+/** Add (positive) or remove (negative) tokens from one bucket. Balances never go below 0. */
+export function adjustBalance(
+  studentId: string,
+  bucket: TokenBucket,
+  delta: number,
+  reason = "Teacher adjustment",
+): Student | null {
+  touch();
+  const student = getStudent(studentId);
+  if (!student || !Number.isFinite(delta) || delta === 0) return null;
+  const key = bucket === "spend" ? "spendTokens" : bucket === "save" ? "saveTokens" : "growTokens";
+  const before = student[key];
+  const after = Math.max(0, before + Math.round(delta));
+  if (after === before) return student;
+  student[key] = after;
+  snapshotBalances(student);
+  logActivity({
+    studentId,
+    kind: "adjusted",
+    title: reason.trim() || "Teacher adjustment",
+    spend: bucket === "spend" ? after - before : 0,
+    save: bucket === "save" ? after - before : 0,
+    grow: bucket === "grow" ? after - before : 0,
+  });
+  return student;
+}
+
+export function setStudentPin(studentId: string, pin: string): boolean {
+  touch();
+  const student = getStudent(studentId);
+  if (!student || !/^\d{4}$/.test(pin)) return false;
+  student.pin = pin;
+  return true;
+}
+
+/** Remove a student and everything tied to them (requests, assignments, pending rewards, activity) */
+export function removeStudent(studentId: string): boolean {
+  touch();
+  const index = students.findIndex((s) => s.id === studentId);
+  if (index === -1) return false;
+  missions.forEach((m) => {
+    if (m.assignedStudentId === studentId) {
+      m.assignedStudentId = undefined;
+      m.status = "AVAILABLE";
+    }
+    if (m.requestedBy.includes(studentId)) {
+      m.requestedBy = m.requestedBy.filter((id) => id !== studentId);
+      m.requestCount = m.requestedBy.length;
+      m.currentReward = calculateReward(m.baseReward, m.requestCount);
+      if (!m.assignedStudentId) m.status = m.requestCount > 0 ? "REQUESTED" : "AVAILABLE";
+    }
+  });
+  pendingRewards = pendingRewards.filter((p) => p.studentId !== studentId);
+  activity = activity.filter((a) => a.studentId !== studentId);
+  students.splice(index, 1);
+  return true;
+}
 
 // Supply & Demand calculation
 export function calculateReward(baseReward: number, requestCount: number): number {
@@ -380,6 +1350,7 @@ export function getBalanceHistory(studentId: string): BalanceHistoryEntry[] {
 }
 
 export function updateStudent(id: string, data: Partial<Student>): Student | null {
+  touch();
   const index = students.findIndex((s) => s.id === id);
   if (index === -1) return null;
   
@@ -393,6 +1364,7 @@ export type CreateStudentData = {
 };
 
 export function createStudent(data: CreateStudentData): Student {
+  touch();
   const slug = data.name
     .trim()
     .toLowerCase()
@@ -414,7 +1386,9 @@ export function createStudent(data: CreateStudentData): Student {
     growTokens: 50,
     assignedMissions: [],
     purchasedRewards: [],
+    room: starterRoom(),
   };
+  snapshotBalances(student);
   students.push(student);
   return student;
 }
@@ -429,6 +1403,7 @@ export function getMission(id: string): Mission | undefined {
 }
 
 export function updateMission(id: string, data: Partial<Mission>): Mission | null {
+  touch();
   const index = missions.findIndex((m) => m.id === id);
   if (index === -1) return null;
   
@@ -444,6 +1419,7 @@ export type CreateMissionData = {
 };
 
 export function createMission(data: CreateMissionData): Mission {
+  touch();
   const id = `mission-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const mission: Mission = {
     id,
@@ -461,6 +1437,7 @@ export function createMission(data: CreateMissionData): Mission {
 }
 
 export function deleteMission(missionId: string): boolean {
+  touch();
   const index = missions.findIndex((m) => m.id === missionId);
   if (index === -1) return false;
   
@@ -477,6 +1454,7 @@ export function deleteMission(missionId: string): boolean {
 }
 
 export function unassignMission(missionId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   if (!mission || !mission.assignedStudentId) return null;
   
@@ -493,6 +1471,7 @@ export function unassignMission(missionId: string): Mission | null {
 }
 
 export function requestMission(studentId: string, missionId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   const student = getStudent(studentId);
   
@@ -507,21 +1486,17 @@ export function requestMission(studentId: string, missionId: string): Mission | 
   // Recalculate reward
   mission.currentReward = calculateReward(mission.baseReward, mission.requestCount);
   mission.status = "REQUESTED";
+  markTour("request");
   
   // Update the mission in the array
   const updated = updateMission(missionId, mission);
   
-  // Log for debugging
-  console.log(`[requestMission] Updated mission ${missionId}:`, {
-    requestCount: updated?.requestCount,
-    currentReward: updated?.currentReward,
-    requestedBy: updated?.requestedBy.length,
-  });
   
   return updated;
 }
 
 export function assignMission(missionId: string, studentId: string): Mission | null {
+  touch();
   const mission = getMission(missionId);
   const student = getStudent(studentId);
   
@@ -539,6 +1514,15 @@ export function assignMission(missionId: string, studentId: string): Mission | n
   }
   
   return updateMission(missionId, mission);
+}
+
+/** Assign a mission to a student, moving it off any previous student first */
+export function assignOrReassignMission(missionId: string, studentId: string): Mission | null {
+  const mission = getMission(missionId);
+  if (mission?.assignedStudentId && mission.assignedStudentId !== studentId) {
+    unassignMission(missionId);
+  }
+  return assignMission(missionId, studentId);
 }
 
 let pendingRewards: PendingReward[] = [];
@@ -560,6 +1544,7 @@ export function claimPendingReward(
   saveAmount: number,
   growAmount: number
 ): { mission: Mission; student: Student } | null {
+  touch();
   const index = pendingRewards.findIndex((p) => p.id === pendingId);
   if (index === -1) return null;
   const pending = pendingRewards[index]!;
@@ -576,7 +1561,19 @@ export function claimPendingReward(
     saveTokens: student.saveTokens + saveAmount,
     growTokens: student.growTokens + growAmount,
   });
-  
+  lockGrow(updatedStudent!, growAmount);
+
+  snapshotBalances(updatedStudent!);
+  logActivity({
+    studentId: student.id,
+    kind: "earned",
+    title: `Earned: ${pending.missionTitle}`,
+    spend: spendAmount,
+    save: saveAmount,
+    grow: growAmount,
+  });
+  markTour("claim");
+
   // Remove pending reward
   pendingRewards.splice(index, 1);
 
@@ -585,12 +1582,35 @@ export function claimPendingReward(
 
 export type TokenBucket = "spend" | "save" | "grow";
 
+/*
+ * Grow is for the long run: tokens put into Grow stay there for a few weeks
+ * before they can be moved out. Interest is never locked.
+ */
+export const GROW_LOCK_WEEKS = 4;
+
+function lockGrow(student: Student, amount: number) {
+  if (amount <= 0) return;
+  student.growLocks = [...(student.growLocks ?? []), { amount, untilWeek: currentWeek + GROW_LOCK_WEEKS }];
+}
+
+/** Grow tokens still locked, soonest first */
+export function getGrowLocks(student: Student): GrowLock[] {
+  return (student.growLocks ?? []).filter((l) => l.untilWeek > currentWeek).sort((a, b) => a.untilWeek - b.untilWeek);
+}
+
+/** How many Grow tokens can be moved out right now */
+export function getGrowAvailable(student: Student): number {
+  const locked = getGrowLocks(student).reduce((sum, l) => sum + l.amount, 0);
+  return Math.max(0, student.growTokens - locked);
+}
+
 export function transferTokens(
   studentId: string,
   amount: number,
   from: TokenBucket,
   to: TokenBucket
 ): { student: Student } | null {
+  touch();
   const student = getStudent(studentId);
   if (!student) return null;
   if (amount <= 0) return null;
@@ -603,6 +1623,7 @@ export function transferTokens(
   };
 
   if (balances[from] < amount) return null;
+  if (from === "grow" && getGrowAvailable(student) < amount) return null;
 
   const updated = { ...balances };
   updated[from] -= amount;
@@ -613,11 +1634,22 @@ export function transferTokens(
     saveTokens: updated.save,
     growTokens: updated.grow,
   });
+  if (to === "grow") lockGrow(updatedStudent!, amount);
+  snapshotBalances(updatedStudent!);
+  logActivity({
+    studentId,
+    kind: "moved",
+    title: `Moved ${BUCKET_LABEL[from]} to ${BUCKET_LABEL[to]}`,
+    spend: updated.spend - balances.spend,
+    save: updated.save - balances.save,
+    grow: updated.grow - balances.grow,
+  });
 
   return { student: updatedStudent! };
 }
 
 export function completeMission(missionId: string): { mission: Mission; student: Student; pendingReward: PendingReward } | null {
+  touch();
   const mission = getMission(missionId);
   if (!mission || !mission.assignedStudentId) return null;
 
@@ -636,6 +1668,7 @@ export function completeMission(missionId: string): { mission: Mission; student:
     totalAmount: reward,
   };
   pendingRewards.push(pendingReward);
+  markTour("approve");
 
   return { mission, student, pendingReward };
 }
@@ -658,6 +1691,7 @@ export type CreateRewardData = {
 };
 
 export function createReward(data: CreateRewardData): Reward {
+  touch();
   const id = `reward-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const reward: Reward = {
     id,
@@ -672,6 +1706,7 @@ export function createReward(data: CreateRewardData): Reward {
 }
 
 export function updateReward(id: string, data: Partial<Reward>): Reward | null {
+  touch();
   const index = rewards.findIndex((r) => r.id === id);
   if (index === -1) return null;
   rewards[index] = { ...rewards[index], ...data };
@@ -679,10 +1714,12 @@ export function updateReward(id: string, data: Partial<Reward>): Reward | null {
 }
 
 export function deleteReward(rewardId: string): boolean {
+  touch();
   const index = rewards.findIndex((r) => r.id === rewardId);
   if (index === -1) return false;
-  // Remove from all students' purchasedRewards
+  // Remove from all students' purchasedRewards and savings goals
   students.forEach((student) => {
+    if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
     if (student.purchasedRewards.includes(rewardId)) {
       const updated = student.purchasedRewards.filter((id) => id !== rewardId);
       updateStudent(student.id, { purchasedRewards: updated });
@@ -693,6 +1730,7 @@ export function deleteReward(rewardId: string): boolean {
 }
 
 export function purchaseReward(studentId: string, rewardId: string): { student: Student; reward: Reward } | null {
+  touch();
   const student = getStudent(studentId);
   const reward = rewards.find((r) => r.id === rewardId);
   
@@ -703,13 +1741,18 @@ export function purchaseReward(studentId: string, rewardId: string): { student: 
   // Deduct tokens
   student.spendTokens -= reward.cost;
   
+  if (student.saveGoalRewardId === rewardId) student.saveGoalRewardId = undefined;
+
   // Add to purchased rewards
   if (!student.purchasedRewards.includes(rewardId)) {
     student.purchasedRewards.push(rewardId);
   }
   
   updateStudent(studentId, student);
-  
+  snapshotBalances(student);
+  logActivity({ studentId, kind: "spent", title: `Bought ${reward.title}`, spend: -reward.cost, save: 0, grow: 0 });
+  markTour("buy");
+
   return { student, reward };
 }
 

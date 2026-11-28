@@ -1,37 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
+import {
+  Gift,
+  Home,
+  ListChecks,
+  LogOut,
+  PiggyBank,
+  Sofa,
+  Sprout,
+  type LucideIcon,
+} from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
+import { Loading } from "@/components/ui/Loading";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { MrsPennyworthPanel } from "@/components/MrsPennyworthPanel";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import {
   getStudent,
+  isHydrated,
   getStudentMissions,
   getAvailableMissions,
   getMissions,
   getRewards,
 } from "@/lib/store";
 import { NarratorPage } from "@/types";
+import { useStore } from "@/lib/useStore";
 
 const SESSION_KEY = "student_session";
 
-export default function StudentLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
   const studentId = params.id as string;
+  useStore();
   const student = getStudent(studentId);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [showPennyworthPanel, setShowPennyworthPanel] = useState(false);
 
   const isLoginPage = pathname.endsWith("/login");
+  const mobileNavRef = useRef<HTMLElement>(null);
+
+  // Keep the current page's pill visible in the scrollable mobile nav
+  useEffect(() => {
+    const active = mobileNavRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (active && mobileNavRef.current) {
+      mobileNavRef.current.scrollTo({ left: active.offsetLeft - 12, behavior: "smooth" });
+    }
+  }, [pathname, sessionChecked]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,14 +70,20 @@ export default function StudentLayout({
     }
   };
 
+  if (!student && !isHydrated()) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
   if (!student) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-paper flex items-center justify-center px-6">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Student not found
-          </h1>
-          <Link href="/" className="text-blue-500 underline">
+          <h1 className="display text-4xl mb-4">Student not found</h1>
+          <Link href="/" className="underline underline-offset-4">
             Go back home
           </Link>
         </div>
@@ -72,31 +97,22 @@ export default function StudentLayout({
 
   if (!sessionChecked) {
     return (
-      <div className="min-h-screen bg-[#d2e5d2] flex items-center justify-center">
-        <div className="animate-pulse text-gray-600 font-display font-bold">
-          Loading...
-        </div>
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <Loading />
       </div>
     );
   }
 
-  const navItems = [
-    { href: `/student/${studentId}`, label: "Dashboard", icon: "🏠" },
-    {
-      href: `/student/${studentId}/marketplace`,
-      label: "Marketplace",
-      icon: "🏪",
-    },
-    {
-      href: `/student/${studentId}/missions`,
-      label: "Activity",
-      icon: "📋",
-    },
-    { href: `/student/${studentId}/grow`, label: "Grow Tokens", icon: "📈" },
-    { href: `/student/${studentId}/save`, label: "Save Tokens", icon: "💰" },
-    { href: `/student/${studentId}/shop`, label: "Reward Shop", icon: "🎁" },
-    { href: `/student/${studentId}/leaderboard`, label: "Market", icon: "🏆" },
+  const base = `/student/${studentId}`;
+  const navItems: { href: string; label: string; icon: LucideIcon; also?: string[] }[] = [
+    { href: base, label: "Home", icon: Home },
+    { href: `${base}/marketplace`, label: "Missions", icon: ListChecks, also: [`${base}/missions`, `${base}/leaderboard`] },
+    { href: `${base}/save`, label: "Save", icon: PiggyBank },
+    { href: `${base}/grow`, label: "Grow", icon: Sprout },
+    { href: `${base}/shop`, label: "Shop", icon: Gift },
+    { href: `${base}/room`, label: "My room", icon: Sofa },
   ];
+  const isActiveItem = (item: (typeof navItems)[number]) => pathname === item.href || !!item.also?.includes(pathname);
 
   // Determine current page for narrator
   const getPage = (): NarratorPage => {
@@ -105,7 +121,7 @@ export default function StudentLayout({
     if (pathname.endsWith("/grow")) return "grow";
     if (pathname.endsWith("/save")) return "save";
     if (pathname.endsWith("/shop")) return "shop";
-    if (pathname.endsWith("/leaderboard")) return "marketplace"; // Treat leaderboard as marketplace context
+    if (pathname.endsWith("/leaderboard")) return "marketplace";
     return "dashboard";
   };
 
@@ -117,9 +133,7 @@ export default function StudentLayout({
   const completedMissions = allMissions.filter(
     (m) => m.assignedStudentId === studentId && m.status === "COMPLETED",
   );
-  const purchasedRewardItems = allRewards.filter((r) =>
-    student.purchasedRewards.includes(r.id),
-  );
+  const purchasedRewardItems = allRewards.filter((r) => student.purchasedRewards.includes(r.id));
   const askNarratorContext = {
     spendTokens: student.spendTokens,
     saveTokens: student.saveTokens,
@@ -141,116 +155,119 @@ export default function StudentLayout({
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Player nameplate header */}
-      <header className="bg-white/95 backdrop-blur-sm rounded-b-2xl border-b border-x border-gray-200 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                onClick={handleLogout}
-                className="text-4xl hover:scale-105 transition-transform"
-                aria-label="Home"
-              >
-                🏦
-              </Link>
-              <div className="flex items-center gap-3">
-                <StudentAvatar
-                  studentId={student.id}
-                  studentName={student.name}
-                  size="sm"
-                  className="w-12 h-12 text-xl"
-                />
-                <div>
-                  <h1 className="font-display font-bold text-xl md:text-2xl text-gray-900">
-                    {student.name}&apos;s Board
-                  </h1>
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-paper">
+      {/* ===== Desktop sidebar ===== */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-surface border-r border-line px-4 py-6 z-30">
+        <div className="px-3">
+          <Logo href={base} />
+        </div>
 
-            <div className="flex gap-3 flex-wrap items-center">
-              <div className="bg-amber-50/90 rounded-xl border border-amber-200 px-4 py-2 shadow-sm">
-                <TokenDisplay
-                  amount={student.spendTokens}
-                  type="spend"
-                  size="sm"
-                />
-              </div>
-              <div className="bg-sky-50/90 rounded-xl border border-sky-200 px-4 py-2 shadow-sm">
-                <TokenDisplay
-                  amount={student.saveTokens}
-                  type="save"
-                  size="sm"
-                />
-              </div>
-              <div
-                className="bg-blue-50/90 rounded-xl border border-blue-200 px-4 py-2 relative shadow-sm"
-                title="Locked and growing! You can't spend these yet."
-              >
-                <TokenDisplay
-                  amount={student.growTokens}
-                  type="grow"
-                  size="sm"
-                  showLock
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPennyworthPanel((prev) => !prev)}
-                className="
-                  flex items-center gap-2 px-5 py-2.5
-                  rounded-full
-                  border-2 border-teal-300 bg-teal-50
-                  font-display font-bold text-teal-800
-                  hover:bg-teal-100 hover:border-teal-400
-                  hover:scale-105 hover:shadow-md
-                  transition-all duration-200
-                  focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2
-                "
-                aria-label="Ask Mrs. Pennyworth"
-                aria-expanded={showPennyworthPanel}
-              >
-                <span className="shrink-0" aria-hidden>
-                  <MrsPennyworthAvatar state="idle" size="sm" />
-                </span>
-                <span>Ask Mrs. Pennyworth 💬</span>
-              </button>
-            </div>
+        <div className="flex items-center gap-3 mx-1 mt-8 mb-6 p-3 rounded-2xl bg-paper">
+          <StudentAvatar studentId={student.id} studentName={student.name} size="sm" />
+          <div className="min-w-0">
+            <p className="font-medium leading-tight truncate">{student.name}</p>
+            <p className="text-xs text-muted">Student</p>
           </div>
         </div>
+
+        <nav className="flex flex-col gap-0.5" aria-label="Main">
+          {navItems.map((item) => {
+            const isActive = isActiveItem(item);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center gap-3 h-11 px-3 rounded-xl text-[15px] transition-colors ${
+                  isActive ? "bg-ink text-white" : "text-ink-soft hover:bg-paper hover:text-ink"
+                }`}
+              >
+                <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto space-y-2">
+          <button
+            type="button"
+            onClick={() => setShowPennyworthPanel(true)}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl bg-lavender-soft hover:bg-lavender/60 transition-colors text-left"
+          >
+            <MrsPennyworthAvatar size="sm" />
+            <div>
+              <p className="text-sm font-medium leading-tight">Ask Mrs. Pennyworth</p>
+              <p className="text-xs text-muted">Your money coach</p>
+            </div>
+          </button>
+          <Link
+            href="/join"
+            onClick={handleLogout}
+            className="flex items-center gap-3 h-11 px-3 rounded-xl text-[15px] text-muted hover:text-ink hover:bg-paper"
+          >
+            <LogOut className="w-[18px] h-[18px]" strokeWidth={1.75} />
+            Sign out
+          </Link>
+        </div>
+      </aside>
+
+      {/* ===== Mobile header ===== */}
+      <header className="lg:hidden sticky top-0 z-30 bg-surface/95 backdrop-blur border-b border-line">
+        <div className="flex items-center justify-between h-16 px-4">
+          <Logo href={base} />
+          <div className="flex items-center gap-2">
+            <Link
+              href="/join"
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-muted hover:text-ink hover:bg-paper"
+              aria-label="Sign out"
+            >
+              <LogOut className="w-5 h-5" strokeWidth={1.75} />
+            </Link>
+            <StudentAvatar studentId={student.id} studentName={student.name} size="sm" />
+          </div>
+        </div>
+        <nav
+          ref={mobileNavRef}
+          className="flex gap-1 overflow-x-auto px-3 pb-3 -mt-1 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]"
+          aria-label="Main"
+        >
+          {navItems.map((item) => {
+            const isActive = isActiveItem(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={`shrink-0 h-9 px-4 rounded-full text-sm flex items-center transition-colors ${
+                  isActive ? "bg-ink text-white" : "text-ink-soft bg-paper"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
       </header>
 
-      {/* Navigation - game tiles */}
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex overflow-x-auto gap-2 py-3">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-bold whitespace-nowrap transition-all border ${
-                    isActive
-                      ? "bg-blue-500 text-white border-blue-500 shadow-md"
-                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
-                  }`}
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {children}
+      {/* ===== Content ===== */}
+      <main className="lg:pl-64">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 md:py-12">{children}</div>
       </main>
+
+      {/* Floating coach button */}
+      {!showPennyworthPanel && (
+        <button
+          type="button"
+          onClick={() => setShowPennyworthPanel(true)}
+          className="fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-surface border border-line shadow-lift flex items-center justify-center hover:scale-105 transition-transform lg:hidden"
+          aria-label="Ask Mrs. Pennyworth"
+        >
+          <MrsPennyworthAvatar size="md" className="border-0" />
+        </button>
+      )}
 
       <MrsPennyworthPanel
         isOpen={showPennyworthPanel}

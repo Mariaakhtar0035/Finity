@@ -1,3 +1,5 @@
+import type { PlacedRoomItem } from "@/lib/roomCatalog";
+import type { AvatarLook } from "@/lib/avatar";
 export type MissionStatus = "AVAILABLE" | "REQUESTED" | "IN_PROGRESS" | "COMPLETED";
 
 /** Weekly balance snapshot for Spend vs Grow chart history */
@@ -22,6 +24,34 @@ export interface Student {
   pin: string;
   /** Optional save goal in tokens; default 200 when undefined */
   saveGoal?: number;
+  /** Optional reward or room item the student is saving toward (takes priority over saveGoal) */
+  saveGoalRewardId?: string;
+  /** The character they made (missing until they make one; a default is used) */
+  look?: AvatarLook;
+  /** Accessories they've bought for their character */
+  accessories?: string[];
+  /** Recent Grow deposits that can't be moved out yet */
+  growLocks?: GrowLock[];
+  /** "My room": what's owned, where everything is, and how it looks */
+  room?: StudentRoom;
+}
+
+export interface GrowLock {
+  amount: number;
+  /** The week these tokens can be moved out of Grow */
+  untilWeek: number;
+}
+
+export interface StudentRoom {
+  /** room item id → how many are owned (walls, floors and rooms: 1) */
+  owned: Record<string, number>;
+  /** Things placed in the room, in the order they were put there */
+  items: PlacedRoomItem[];
+  style: string;
+  wallpaper: string;
+  flooring: string;
+  /** Ids of classmates who liked this room */
+  likes: string[];
 }
 
 /** Top band color for mission card (board-game sets) */
@@ -57,6 +87,23 @@ export interface TokenBalance {
   grow: number;
   save: number;
 }
+
+/** One line in a student's money activity feed */
+export interface ActivityEntry {
+  id: string;
+  studentId: string;
+  week: number;
+  kind: "earned" | "spent" | "moved" | "interest" | "adjusted";
+  title: string;
+  /** Change to each balance (positive = in, negative = out) */
+  spend: number;
+  save: number;
+  grow: number;
+  at: number;
+}
+
+/** Steps in the first-visit checklist */
+export type TourStep = "request" | "approve" | "claim" | "advance" | "buy";
 
 export interface PendingReward {
   id: string;

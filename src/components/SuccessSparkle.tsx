@@ -1,41 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { Confetti } from "@/components/ui/Feedback";
 
 interface SuccessSparkleProps {
   show: boolean;
   onComplete?: () => void;
+  /** Kept for API compatibility; confetti always runs ~1.9s */
   duration?: number;
 }
 
-export function SuccessSparkle({
-  show,
-  onComplete,
-  duration = 1500,
-}: SuccessSparkleProps) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (show) {
-      setVisible(true);
-      const timer = setTimeout(() => {
-        setVisible(false);
-        onComplete?.();
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [show, duration, onComplete]);
-
-  if (!visible || !show) return null;
-
-  return (
-    <div
-      className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
-      aria-hidden
-    >
-      <div className="text-8xl animate-bounce-in opacity-90">
-        ✨🎉✨
-      </div>
-    </div>
-  );
+/** Celebration burst used after purchases, requests and approvals */
+export function SuccessSparkle({ show, onComplete }: SuccessSparkleProps) {
+  return <Confetti show={show} onDone={onComplete} />;
 }

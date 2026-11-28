@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
+import { TypingDots } from "@/components/ui/Feedback";
+import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import { getFallbackText } from "@/lib/gemini";
-import type { BalanceHistoryEntry } from "@/types";
-import type { Reward } from "@/types";
+import type { BalanceHistoryEntry, Reward } from "@/types";
 
 const CACHE_KEY_PREFIX = "mrs-pennyworth-spending-insight";
 
@@ -28,7 +29,18 @@ interface SpendingBehaviorCardProps {
   availableRewards?: Array<{ title: string; cost: number }>;
 }
 
-const SPENDING_BEHAVIOR_FALLBACK = "Here's a tip: try saving a little before you spend. Your future self will thank you!";
+const SPENDING_BEHAVIOR_FALLBACK =
+  "Try saving a little before you spend. Future you will be glad you did!";
+
+const DOT_COLORS = ["#f6c88f", "#aee2c2", "#b6c1f5", "#d6c6f4"];
+
+/** Splits the model's text into paragraphs and drops a trailing cut-off line */
+function toParagraphs(text: string): string[] {
+  const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  const last = lines[lines.length - 1];
+  if (lines.length > 1 && last && !/[.!?]$/.test(last)) return lines.slice(0, -1);
+  return lines;
+}
 
 export function SpendingBehaviorCard({
   studentId,
@@ -105,52 +117,45 @@ export function SpendingBehaviorCard({
 
     if (tryRestoreFromCache()) return;
     fetchInsight();
-    return () => { isMounted = false; };
-  }, [studentId, studentName, history, purchasedRewardItems, currentSpend, currentSave, currentGrow, saveGoal, availableRewards]);
+    return () => {
+      isMounted = false;
+    };
+    // Only refetch when the student changes; the rest is read from the latest props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId]);
 
-  const insightIcons = ["💡", "🎯", "💰", "🌟"];
-  const insightColors = [
-    "bg-amber-50 border-l-4 border-amber-500 text-amber-900",
-    "bg-emerald-50 border-l-4 border-emerald-500 text-emerald-900",
-    "bg-blue-50 border-l-4 border-blue-500 text-blue-900",
-    "bg-purple-50 border-l-4 border-purple-500 text-purple-900",
-  ];
+  const paragraphs = toParagraphs(insight ?? SPENDING_BEHAVIOR_FALLBACK);
 
   return (
-    <Card borderColor="border-indigo-500" className="p-6 bg-gradient-to-br from-indigo-50/50 to-violet-50/50">
-      <h2 className="font-display font-bold text-2xl text-gray-900 mb-4 text-center flex items-center justify-center gap-2">
-        <span className="text-3xl">🔮</span>
-        Mrs. Pennyworth&apos;s Spending Insights
-      </h2>
+    <Card className="p-6 md:p-8">
+      <div className="flex items-center gap-3 mb-5">
+        <MrsPennyworthAvatar size="md" state={loading ? "thinking" : "idle"} />
+        <div>
+          <h2 className="font-display text-2xl tracking-tight leading-tight">Tips for you</h2>
+          <p className="text-sm text-muted">From Mrs. Pennyworth</p>
+        </div>
+      </div>
+
       {loading ? (
-        <p className="text-indigo-600 font-medium text-sm md:text-base italic text-center py-4">
-          <span className="text-2xl inline-block animate-pulse mr-2">✨</span>
-          Analyzing your spending habits…
-        </p>
-      ) : insight ? (
         <div className="space-y-3">
-          {((): string[] => {
-            const lines = insight.split(/\n+/).filter(Boolean);
-            const last = lines[lines.length - 1]?.trim();
-            if (lines.length > 1 && last && !/[.!?]$/.test(last)) {
-              return lines.slice(0, -1);
-            }
-            return lines;
-          })().map((paragraph, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-2 p-3 rounded-xl ${insightColors[i % insightColors.length]}`}
-            >
-              <span className="text-xl shrink-0">{insightIcons[i % insightIcons.length]}</span>
-              <p className="font-medium text-sm md:text-base">{paragraph}</p>
-            </div>
-          ))}
+          <TypingDots label="Thinking" />
+          <div className="h-4 bg-paper rounded-full w-full animate-pulse" />
+          <div className="h-4 bg-paper rounded-full w-5/6 animate-pulse" />
+          <div className="h-4 bg-paper rounded-full w-2/3 animate-pulse" />
         </div>
       ) : (
-        <p className="text-indigo-600 font-medium text-sm md:text-base text-center py-4">
-          <span className="text-2xl mr-2">💡</span>
-          {SPENDING_BEHAVIOR_FALLBACK}
-        </p>
+        <ul className="space-y-4">
+          {paragraphs.map((paragraph, i) => (
+            <li key={i} className="flex gap-3">
+              <span
+                className="mt-2 w-2.5 h-2.5 rounded-full border-[1.5px] border-ink shrink-0"
+                style={{ background: DOT_COLORS[i % DOT_COLORS.length] }}
+                aria-hidden
+              />
+              <p className="text-[15px] leading-relaxed text-ink-soft">{paragraph}</p>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

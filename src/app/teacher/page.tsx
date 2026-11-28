@@ -2,10 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
+import { useRouter } from "next/navigation";
+import { CalendarPlus, Copy, LogOut, Pencil, Plus, Trash2, TrendingUp } from "lucide-react";
+import { SproutDoodle } from "@/components/ui/Doodles";
+import { Card, SectionHeading } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { TokenDisplay } from "@/components/ui/TokenDisplay";
+import { Coin, TOKEN_META } from "@/components/ui/Coin";
+import { TokenChip } from "@/components/ui/TokenChip";
+import { Logo } from "@/components/ui/Logo";
+import { Loading } from "@/components/ui/Loading";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Segmented, Toast } from "@/components/ui/Feedback";
+import { EmptyState } from "@/components/EmptyState";
+import { ManageStudentModal } from "@/components/ManageStudentModal";
+import { ClassInsights } from "@/components/ClassInsights";
+import { rewardTint } from "@/lib/palette";
+import { RewardIcon } from "@/components/RewardIcon";
 import { MissionCard } from "@/components/MissionCard";
 import { MissionFormModal } from "@/components/MissionFormModal";
 import { RewardFormModal } from "@/components/RewardFormModal";
@@ -15,6 +27,16 @@ import { AssignMissionModal } from "@/components/AssignMissionModal";
 import { StudentAvatar } from "@/components/StudentAvatar";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
 import {
+  advanceWeek,
+  getCurrentWeek,
+  CLASSROOM,
+  formatClassCode,
+  assignOrReassignMission,
+  completeMission,
+  getMissions,
+  getPendingApprovalMissions,
+  getRewards,
+  getStudents,
   getRecommendedSplit,
   createStudent,
   createMission,
@@ -26,28 +48,20 @@ import {
   updateReward,
   deleteReward,
 } from "@/lib/store";
-import { Mission, Reward, Student, MissionBandColor } from "@/types";
+import { Mission, Reward, MissionBandColor } from "@/types";
+import { useStore, hasTeacherSession, setTeacherSession } from "@/lib/useStore";
 
-async function fetchDashboard() {
-  const res = await fetch("/api/teacher/dashboard", {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache" },
-  });
-  if (!res.ok) throw new Error("Failed to fetch dashboard");
-  return res.json() as Promise<{
-    missions: Mission[];
-    students: Student[];
-    rewards: Reward[];
-    pendingMissions: Mission[];
-  }>;
-}
+type TeacherTab = "missions" | "rewards" | "requests" | "students" | "insights";
 
 export default function TeacherDashboard() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [missions, setMissions] = useState<Mission[]>([]);
-  const [pendingMissions, setPendingMissions] = useState<Mission[]>([]);
-  const [rewards, setRewards] = useState<Reward[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  useStore();
+  const students = getStudents();
+  const missions = getMissions();
+  const rewards = getRewards();
+  const pendingMissions = getPendingApprovalMissions();
+  const week = getCurrentWeek();
+  const [authorized, setAuthorized] = useState(false);
   const [message, setMessage] = useState("");
   const [showSparkle, setShowSparkle] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
@@ -61,63 +75,43 @@ export default function TeacherDashboard() {
   const [showRewardDeleteModal, setShowRewardDeleteModal] = useState(false);
   const [rewardToDelete, setRewardToDelete] = useState<Reward | null>(null);
   const [showStudentFormModal, setShowStudentFormModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "missions" | "rewards" | "requests" | "students"
-  >("missions");
+  const [activeTab, setActiveTab] = useState<TeacherTab>("missions");
+  const [managingId, setManagingId] = useState<string | null>(null);
 
-  const refreshData = () =>
-    fetchDashboard()
-      .then((data) => {
-        setStudents(data.students);
-        setMissions(data.missions);
-        setRewards(data.rewards);
-        setPendingMissions(data.pendingMissions);
-      })
-      .catch((err) => console.error("Failed to refresh dashboard:", err));
-
+  // Demo sign-in guard
   useEffect(() => {
-    refreshData().finally(() => setLoading(false));
-    const interval = setInterval(refreshData, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!hasTeacherSession()) router.replace("/teacher/login");
+    else setAuthorized(true);
+  }, [router]);
 
-  const triggerSuccess = (msg: string) => {
+  const triggerSuccess = (msg: string, celebrate = false) => {
     setMessage(msg);
-    setShowSparkle(true);
-    refreshData();
-    setTimeout(() => setMessage(""), 4000);
-    setTimeout(() => setShowSparkle(false), 1500);
+    if (celebrate) setShowSparkle(true);
+    setTimeout(() => setMessage(""), 3500);
   };
 
-  const handleAssignMission = async (missionId: string, studentId: string) => {
-    try {
-      const res = await fetch("/api/teacher/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ missionId, studentId }),
-      });
-      if (!res.ok) throw new Error("Assign failed");
+  const handleAssignMission = (missionId: string, studentId: string) => {
+    if (assignOrReassignMission(missionId, studentId)) {
       const name = students.find((s) => s.id === studentId)?.name;
-      triggerSuccess(`Mission assigned to ${name}!`);
-    } catch (err) {
-      console.error("Failed to assign mission:", err);
+      triggerSuccess(`Mission assigned to ${name}.`);
     }
   };
 
-  const handleApproveMission = async (missionId: string) => {
-    try {
-      const res = await fetch("/api/teacher/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ missionId }),
-      });
-      if (!res.ok) throw new Error("Complete failed");
-      const data = await res.json();
+  const handleAdvanceWeek = () => {
+    const result = advanceWeek();
+    triggerSuccess(
+      `Week ${result.week} started. Students earned ${result.totalInterest} Grow tokens in interest.`,
+      true,
+    );
+  };
+
+  const handleApproveMission = (missionId: string) => {
+    const result = completeMission(missionId);
+    if (result) {
       triggerSuccess(
-        `Mission approved! ${data.student.name} has ${data.pendingReward.totalAmount} tokens to claim.`,
+        `Approved. ${result.student.name} has ${result.pendingReward.totalAmount} tokens to claim.`,
+        true,
       );
-    } catch (err) {
-      console.error("Failed to approve mission:", err);
     }
   };
 
@@ -139,10 +133,10 @@ export default function TeacherDashboard() {
         currentReward: newReward,
         bandColor: data.bandColor,
       });
-      triggerSuccess("Mission updated!");
+      triggerSuccess("Mission updated");
     } else {
       createMission(data);
-      triggerSuccess("Mission added!");
+      triggerSuccess("Mission added");
     }
     setShowFormModal(false);
     setEditingMission(null);
@@ -151,7 +145,7 @@ export default function TeacherDashboard() {
   const handleDeleteConfirm = () => {
     if (!missionToDelete) return;
     deleteMission(missionToDelete.id);
-    triggerSuccess("Mission removed.");
+    triggerSuccess("Mission removed");
     setMissionToDelete(null);
     setShowDeleteModal(false);
   };
@@ -165,10 +159,10 @@ export default function TeacherDashboard() {
   }) => {
     if (editingReward) {
       updateReward(editingReward.id, data);
-      triggerSuccess("Reward updated!");
+      triggerSuccess("Reward updated");
     } else {
       createReward(data);
-      triggerSuccess("Reward added!");
+      triggerSuccess("Reward added");
     }
     setShowRewardFormModal(false);
     setEditingReward(null);
@@ -176,14 +170,14 @@ export default function TeacherDashboard() {
 
   const handleStudentFormSubmit = (data: { name: string; pin?: string }) => {
     createStudent(data);
-    triggerSuccess(`Student ${data.name} added!`);
+    triggerSuccess(`${data.name} added to your class`);
     setShowStudentFormModal(false);
   };
 
   const handleRewardDeleteConfirm = () => {
     if (!rewardToDelete) return;
     deleteReward(rewardToDelete.id);
-    triggerSuccess("Reward removed.");
+    triggerSuccess("Reward removed");
     setRewardToDelete(null);
     setShowRewardDeleteModal(false);
   };
@@ -192,542 +186,390 @@ export default function TeacherDashboard() {
     (m) => m.requestedBy.length > 0 && !m.assignedStudentId,
   );
 
+  const tabs: { value: TeacherTab; label: string; count?: number }[] = [
+    { value: "missions", label: "Missions" },
+    { value: "requests", label: "Requests", count: requestedMissions.length + pendingMissions.length },
+    { value: "rewards", label: "Rewards" },
+    { value: "students", label: "Students" },
+    { value: "insights", label: "Insights" },
+  ];
+
+  const summary = [
+    { label: "Students", value: students.length },
+    { label: "Open missions", value: missions.filter((m) => !m.assignedStudentId).length },
+    { label: "Awaiting assignment", value: requestedMissions.length },
+    { label: "Awaiting approval", value: pendingMissions.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-white border-b-4 border-gray-300 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-4xl">
-                🏦
-              </Link>
-              <h1 className="text-3xl font-bold text-gray-900 font-display">
-                Teacher Dashboard
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <Link href="/leaderboard">
-                <Button variant="primary">🏆 Market Leaderboard</Button>
-              </Link>
-              <Link href="/">
-                <Button variant="secondary">Back to Home</Button>
-              </Link>
-            </div>
+    <div className="min-h-screen bg-paper">
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur border-b border-line">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <Logo href="/teacher" suffix="for teachers" />
+          <div className="flex items-center gap-2">
+            <Link href="/leaderboard">
+              <Button variant="secondary" size="sm">
+                <TrendingUp className="w-4 h-4" /> <span className="hidden sm:inline">Market trends</span>
+              </Button>
+            </Link>
+            <Link href="/" onClick={() => setTeacherSession(false)}>
+              <Button variant="ghost" size="sm">
+                <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading dashboard...</p>
-          </div>
-        )}
-        {message && (
-          <div className="bg-green-100 border-4 border-green-500 rounded-2xl p-4 text-center shadow-md">
-            <p className="text-lg font-bold text-green-800 font-display">
-              {message}
-            </p>
-          </div>
-        )}
-
-        {!loading && (
-        <>
-        <nav
-          role="tablist"
-          aria-label="Dashboard sections"
-          className="flex flex-wrap gap-2 border-b-2 border-gray-200 pb-2 mb-6"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "missions"}
-            aria-controls="tabpanel-missions"
-            id="tab-missions"
-            onClick={() => setActiveTab("missions")}
-            className={`px-4 py-2 rounded-xl font-display font-bold border-2 transition-colors ${
-              activeTab === "missions"
-                ? "bg-amber-100 text-gray-900 border-amber-300"
-                : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
-            }`}
-          >
-            Missions
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "rewards"}
-            aria-controls="tabpanel-rewards"
-            id="tab-rewards"
-            onClick={() => setActiveTab("rewards")}
-            className={`px-4 py-2 rounded-xl font-display font-bold border-2 transition-colors ${
-              activeTab === "rewards"
-                ? "bg-emerald-100 text-gray-900 border-emerald-300"
-                : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
-            }`}
-          >
-            Rewards
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "requests"}
-            aria-controls="tabpanel-requests"
-            id="tab-requests"
-            onClick={() => setActiveTab("requests")}
-            className={`px-4 py-2 rounded-xl font-display font-bold border-2 transition-colors ${
-              activeTab === "requests"
-                ? "bg-blue-100 text-gray-900 border-blue-300"
-                : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
-            }`}
-          >
-            Requests & Approvals
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "students"}
-            aria-controls="tabpanel-students"
-            id="tab-students"
-            onClick={() => setActiveTab("students")}
-            className={`px-4 py-2 rounded-xl font-display font-bold border-2 transition-colors ${
-              activeTab === "students"
-                ? "bg-purple-100 text-gray-900 border-purple-300"
-                : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
-            }`}
-          >
-            Students
-          </button>
-        </nav>
-
-        {activeTab === "missions" && (
-          <div
-            role="tabpanel"
-            id="tabpanel-missions"
-            aria-labelledby="tab-missions"
-            className="space-y-8"
-          >
-            {/* All Missions - CRUD */}
-            <Card borderColor="border-amber-500" className="p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 font-display">
-                  🃏 All Missions
-                </h2>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setEditingMission(null);
-                    setShowFormModal(true);
-                  }}
-                  className="shrink-0"
-                >
-                  + Add Mission
-                </Button>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
+        <PageHeader
+          eyebrow={CLASSROOM.name}
+          title="Your classroom economy"
+          action={
+            <div className="flex items-center gap-4 bg-surface border border-line rounded-2xl pl-5 pr-2 py-2">
+              <div>
+                <p className="text-xs text-muted">Class code</p>
+                <p className="font-display text-2xl tracking-[0.12em] num">{formatClassCode()}</p>
               </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard?.writeText(formatClassCode());
+                  triggerSuccess("Class code copied. Students join at /join");
+                }}
+              >
+                <Copy className="w-4 h-4" /> Copy
+              </Button>
+            </div>
+          }
+        />
 
-              {missions.length === 0 ? (
-                <p className="text-gray-600 text-center py-8 font-display">
-                  No missions yet. Add one to get started!
+        {!authorized ? (
+          <Loading />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {summary.map((s) => (
+                <Card key={s.label} className="p-5">
+                  <p className="text-sm text-muted">{s.label}</p>
+                  <p className="display text-4xl num mt-2">{s.value}</p>
+                </Card>
+              ))}
+            </div>
+
+            <Card className="relative overflow-hidden mb-10 p-5 md:p-6 pl-5 md:pl-36 flex flex-col sm:flex-row sm:items-center gap-4 bg-mint-soft! border-[#cfe9d8]!">
+              <SproutDoodle className="hidden md:block absolute left-8 -bottom-3 w-20 h-auto" />
+              <div className="flex-1">
+                <p className="text-sm text-muted">Current week</p>
+                <p className="font-display text-3xl tracking-tight">Week {week}</p>
+                <p className="text-[15px] text-ink-soft mt-1">
+                  When a new week starts, every student&apos;s Grow tokens earn 2% interest.
                 </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {missions.map((mission) => {
-                    const assignedStudent = mission.assignedStudentId
-                      ? students.find((s) => s.id === mission.assignedStudentId)
-                      : null;
-                    return (
-                      <MissionCard
-                        key={mission.id}
-                        mission={mission}
-                        variant="teacher"
-                        assignedStudentName={assignedStudent?.name}
-                        onEdit={() => {
-                          setEditingMission(mission);
-                          setShowFormModal(true);
-                        }}
-                        onDelete={() => {
-                          setMissionToDelete(mission);
-                          setShowDeleteModal(true);
-                        }}
-                        onAssign={() => {
-                          // If mission is completed, unassign it instead of showing assign modal
-                          if (mission.status === "COMPLETED") {
-                            unassignMission(mission.id);
-                            triggerSuccess(
-                              `Mission "${mission.title}" reset to available!`,
-                            );
-                          } else {
-                            setMissionToAssign(mission);
-                            setShowAssignModal(true);
-                          }
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              )}
+              </div>
+              <Button onClick={handleAdvanceWeek} className="shrink-0">
+                <CalendarPlus className="w-4 h-4" /> Start week {week + 1}
+              </Button>
             </Card>
-          </div>
-        )}
 
-        {activeTab === "rewards" && (
-          <div
-            role="tabpanel"
-            id="tabpanel-rewards"
-            aria-labelledby="tab-rewards"
-            className="space-y-8"
-          >
-            {/* All Rewards - CRUD */}
-            <Card borderColor="border-emerald-500" className="p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 font-display">
-                  🎁 All Rewards
-                </h2>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setEditingReward(null);
-                    setShowRewardFormModal(true);
-                  }}
-                  className="shrink-0"
-                >
-                  + Add Reward
-                </Button>
-              </div>
-
-              {rewards.length === 0 ? (
-                <p className="text-gray-600 text-center py-8 font-display">
-                  No rewards yet. Add one to get started!
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {rewards.map((reward) => (
-                    <div
-                      key={reward.id}
-                      className="flex flex-col rounded-2xl border-2 border-gray-200 overflow-hidden bg-white shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5"
-                    >
-                      <div className="p-4 flex-1 flex flex-col items-center text-center gap-2">
-                        <div className="text-5xl">{reward.icon}</div>
-                        <h3 className="font-display font-bold text-gray-900 text-sm line-clamp-2">
-                          {reward.title}
-                        </h3>
-                        <p className="text-gray-600 text-xs line-clamp-2">
-                          {reward.description}
-                        </p>
-                        <span className="font-display font-bold text-amber-800 text-sm">
-                          🪙 {reward.cost} tokens
+            <div className="overflow-x-auto mb-6 -mx-4 px-4 [scrollbar-width:none]">
+              <Segmented
+                ariaLabel="Dashboard sections"
+                value={activeTab}
+                onChange={setActiveTab}
+                options={tabs.map((t) => ({
+                  value: t.value,
+                  label: (
+                    <>
+                      {t.label}
+                      {!!t.count && (
+                        <span className="min-w-5 h-5 px-1.5 rounded-full bg-ink text-white text-xs flex items-center justify-center num">
+                          {t.count}
                         </span>
-                        {reward.soldOut && (
-                          <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">
-                            Sold Out
-                          </span>
-                        )}
-                        <div className="flex gap-2 mt-auto pt-2 w-full">
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setEditingReward(reward);
-                              setShowRewardFormModal(true);
-                            }}
-                            className="flex-1 text-sm py-2 border-2 border-amber-200 bg-amber-50! text-gray-800! hover:bg-amber-100! hover:border-amber-300!"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setRewardToDelete(reward);
-                              setShowRewardDeleteModal(true);
-                            }}
-                            className="flex-1 text-sm py-2 border-2 border-red-200 bg-red-50! text-gray-800! hover:bg-red-100! hover:border-red-300!"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </div>
-        )}
+                      )}
+                    </>
+                  ),
+                }))}
+              />
+            </div>
 
-        {activeTab === "requests" && (
-          <div
-            role="tabpanel"
-            id="tabpanel-requests"
-            aria-labelledby="tab-requests"
-            className="space-y-8"
-          >
-            {/* Mission Requests */}
-            <Card borderColor="border-blue-500" className="p-8">
-              <h2 className="text-3xl font-bold text-gray-900 font-display mb-6">
-                📋 Mission Requests
-              </h2>
-
-              {requestedMissions.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">
-                  No mission requests at the moment.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {requestedMissions.map((mission) => (
-                    <div
-                      key={mission.id}
-                      className="border-2 border-gray-200 rounded-2xl p-6 bg-white hover:shadow-md transition-shadow"
+            {activeTab === "missions" && (
+              <section role="tabpanel" aria-label="Missions">
+                <SectionHeading
+                  title="All missions"
+                  description="Jobs students can request. Popular missions pay less."
+                  action={
+                    <Button
+                      onClick={() => {
+                        setEditingMission(null);
+                        setShowFormModal(true);
+                      }}
                     >
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="grow">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900 font-display">
-                              {mission.title}
-                            </h3>
-                            <Badge status={mission.status} />
-                          </div>
-                          <p className="text-gray-700 mb-3">
-                            {mission.description}
-                          </p>
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="font-bold text-gray-700">
-                              Reward:
+                      <Plus className="w-4 h-4" /> Add mission
+                    </Button>
+                  }
+                  className="mb-6"
+                />
+                {missions.length === 0 ? (
+                  <EmptyState title="No missions yet" description="Add your first mission to get the economy going." />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {missions.map((mission) => {
+                      const assignedStudent = mission.assignedStudentId
+                        ? students.find((s) => s.id === mission.assignedStudentId)
+                        : null;
+                      return (
+                        <MissionCard
+                          key={mission.id}
+                          mission={mission}
+                          variant="teacher"
+                          assignedStudentName={assignedStudent?.name}
+                          onEdit={() => {
+                            setEditingMission(mission);
+                            setShowFormModal(true);
+                          }}
+                          onDelete={() => {
+                            setMissionToDelete(mission);
+                            setShowDeleteModal(true);
+                          }}
+                          onAssign={() => {
+                            // Completed missions are reset to available instead of reassigned
+                            if (mission.status === "COMPLETED") {
+                              unassignMission(mission.id);
+                              triggerSuccess(`"${mission.title}" is available again.`);
+                            } else {
+                              setMissionToAssign(mission);
+                              setShowAssignModal(true);
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activeTab === "rewards" && (
+              <section role="tabpanel" aria-label="Rewards">
+                <SectionHeading
+                  title="Reward shop"
+                  description="Perks students can buy with Spend tokens."
+                  action={
+                    <Button
+                      onClick={() => {
+                        setEditingReward(null);
+                        setShowRewardFormModal(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4" /> Add reward
+                    </Button>
+                  }
+                  className="mb-6"
+                />
+                {rewards.length === 0 ? (
+                  <EmptyState title="No rewards yet" description="Add a reward so students have something to save up for." />
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {rewards.map((reward) => (
+                      <Card key={reward.id} className="flex flex-col overflow-hidden">
+                        <div
+                          className="m-2 mb-0 rounded-[1.25rem] h-24 flex items-center justify-center relative"
+                          style={{ background: rewardTint(reward.id) }}
+                        >
+                          <span className="w-12 h-12 rounded-full bg-surface border-2 border-ink flex items-center justify-center">
+                            <RewardIcon icon={reward.icon} className="w-5 h-5" />
+                          </span>
+                          {reward.soldOut && (
+                            <span className="absolute top-2.5 right-2.5 h-6 px-2.5 rounded-full bg-ink text-white text-xs flex items-center">
+                              Sold out
                             </span>
-                            <TokenDisplay
-                              amount={mission.currentReward}
-                              type="spend"
-                              size="sm"
-                              showLabel={false}
-                            />
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="font-bold">Requested by:</span>{" "}
-                            {mission.requestedBy
-                              .map(
-                                (id) => students.find((s) => s.id === id)?.name,
-                              )
-                              .join(", ")}
-                          </div>
+                          )}
                         </div>
-                        <div className="flex flex-col gap-2 min-w-[200px]">
-                          <label className="text-sm font-bold text-gray-700">
-                            Assign to:
-                          </label>
-                          {mission.requestedBy.map((studentId) => {
-                            const student = students.find(
-                              (s) => s.id === studentId,
-                            );
-                            return (
-                              <Button
-                                key={studentId}
-                                variant="primary"
-                                onClick={() =>
-                                  handleAssignMission(mission.id, studentId)
-                                }
-                                className="w-full"
-                              >
-                                {student?.name}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            {/* Pending Approvals */}
-            <Card borderColor="border-emerald-500" className="p-8">
-              <h2 className="text-3xl font-bold text-gray-900 font-display mb-6">
-                ✅ Pending Approvals
-              </h2>
-
-              {pendingMissions.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">
-                  No missions pending approval.
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  {pendingMissions.map((mission) => {
-                    const student = students.find(
-                      (s) => s.id === mission.assignedStudentId,
-                    );
-                    const {
-                      spend: spendAmount,
-                      save: saveAmount,
-                      grow: growAmount,
-                    } = getRecommendedSplit(mission.currentReward);
-                    return (
-                      <div
-                        key={mission.id}
-                        className="border-2 border-gray-200 rounded-2xl p-6 bg-white hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                          <div className="grow">
-                            <h3 className="text-xl font-bold text-gray-900 font-display mb-2">
-                              {mission.title}
-                            </h3>
-                            <p className="text-gray-700 mb-3">
-                              {mission.description}
-                            </p>
-                            <div className="space-y-2">
-                              <div className="text-sm">
-                                <span className="font-bold text-gray-700">
-                                  Student:
-                                </span>{" "}
-                                {student?.name}
-                              </div>
-                              <div className="text-sm">
-                                <span className="font-bold text-gray-700">
-                                  Reward Split:
-                                </span>{" "}
-                                {spendAmount} Spend + {saveAmount} Save +{" "}
-                                {growAmount} Grow tokens
-                              </div>
-                            </div>
+                        <div className="p-4 flex-1 flex flex-col">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-medium leading-snug">{reward.title}</h3>
+                            <TokenChip amount={reward.cost} size="sm" />
                           </div>
-                          <div>
+                          <p className="text-sm text-muted mt-1 line-clamp-2">{reward.description}</p>
+                          <div className="flex gap-2 mt-auto pt-4">
                             <Button
-                              variant="success"
-                              onClick={() => handleApproveMission(mission.id)}
+                              variant="secondary"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                setEditingReward(reward);
+                                setShowRewardFormModal(true);
+                              }}
                             >
-                              Approve & Award Tokens
+                              <Pencil className="w-4 h-4" /> Edit
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="px-3! hover:text-negative hover:border-negative"
+                              aria-label={`Delete ${reward.title}`}
+                              onClick={() => {
+                                setRewardToDelete(reward);
+                                setShowRewardDeleteModal(true);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
                         </div>
-                      </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activeTab === "requests" && (
+              <section role="tabpanel" aria-label="Requests" className="grid lg:grid-cols-2 gap-6 items-start">
+                <Card className="p-6 md:p-8">
+                  <SectionHeading title="Mission requests" description="Choose who gets each requested mission." className="mb-2" />
+                  {requestedMissions.length === 0 ? (
+                    <p className="text-muted py-8">No requests right now.</p>
+                  ) : (
+                    <ul className="divide-y divide-line">
+                      {requestedMissions.map((mission) => (
+                        <li key={mission.id} className="py-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium">{mission.title}</p>
+                              <p className="text-sm text-muted mt-0.5">
+                                {mission.requestedBy.length} request{mission.requestedBy.length === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <TokenChip amount={mission.currentReward} size="sm" />
+                          </div>
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {mission.requestedBy.map((studentId) => {
+                              const student = students.find((s) => s.id === studentId);
+                              if (!student) return null;
+                              return (
+                                <button
+                                  key={studentId}
+                                  type="button"
+                                  onClick={() => handleAssignMission(mission.id, studentId)}
+                                  className="inline-flex items-center gap-2 h-10 pl-1 pr-4 rounded-full border border-line-strong hover:border-ink hover:bg-paper transition-colors text-sm"
+                                >
+                                  <StudentAvatar studentId={student.id} studentName={student.name} size="xs" />
+                                  Assign to {student.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+
+                <Card className="p-6 md:p-8">
+                  <SectionHeading title="Ready for approval" description="Approve finished work to release tokens." className="mb-2" />
+                  {pendingMissions.length === 0 ? (
+                    <p className="text-muted py-8">Nothing waiting for approval.</p>
+                  ) : (
+                    <ul className="divide-y divide-line">
+                      {pendingMissions.map((mission) => {
+                        const student = students.find((s) => s.id === mission.assignedStudentId);
+                        const split = getRecommendedSplit(mission.currentReward);
+                        return (
+                          <li key={mission.id} className="py-5 flex items-center gap-4">
+                            {student && <StudentAvatar studentId={student.id} studentName={student.name} size="sm" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{mission.title}</p>
+                              <p className="text-sm text-muted num">
+                                {student?.name} · {mission.currentReward} tokens ({split.spend}/{split.save}/{split.grow})
+                              </p>
+                            </div>
+                            <Button size="sm" onClick={() => handleApproveMission(mission.id)}>
+                              Approve
+                            </Button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </Card>
+              </section>
+            )}
+
+            {activeTab === "insights" && (
+              <section role="tabpanel" aria-label="Insights">
+                <ClassInsights students={students} />
+              </section>
+            )}
+
+            {activeTab === "students" && (
+              <section role="tabpanel" aria-label="Students">
+                <SectionHeading
+                  title="Students"
+                  description="Balances and progress for everyone in your class."
+                  action={
+                    <Button onClick={() => setShowStudentFormModal(true)}>
+                      <Plus className="w-4 h-4" /> Add student
+                    </Button>
+                  }
+                  className="mb-6"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {students.map((student) => {
+                    const completedCount = missions.filter(
+                      (m) => m.assignedStudentId === student.id && m.status === "COMPLETED",
+                    ).length;
+                    const purchasedRewardItems = rewards.filter((r) => student.purchasedRewards.includes(r.id));
+                    const total = student.spendTokens + student.saveTokens + student.growTokens;
+                    return (
+                      <Card key={student.id} className="p-6">
+                        <div className="flex items-center gap-3">
+                          <StudentAvatar studentId={student.id} studentName={student.name} size="md" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-display text-2xl tracking-tight leading-tight">{student.name}</h3>
+                            <p className="text-sm text-muted num">
+                              {total} tokens · {completedCount} done
+                            </p>
+                          </div>
+                          <Button variant="secondary" size="sm" onClick={() => setManagingId(student.id)}>
+                            Manage
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mt-5">
+                          {(["spend", "save", "grow"] as const).map((t) => (
+                            <div key={t} className={`rounded-2xl p-3 ${TOKEN_META[t].soft}`}>
+                              <Coin type={t} size={22} />
+                              <p className="font-display text-xl num mt-2">
+                                {t === "spend" ? student.spendTokens : t === "save" ? student.saveTokens : student.growTokens}
+                              </p>
+                              <p className="text-xs text-muted">{TOKEN_META[t].label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-5 pt-4 border-t border-line">
+                          <p className="text-sm text-muted mb-2">Purchases</p>
+                          {purchasedRewardItems.length === 0 ? (
+                            <p className="text-sm text-faint">None yet</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {purchasedRewardItems.map((reward) => (
+                                <span key={reward.id} className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-paper text-xs">
+                                  <RewardIcon icon={reward.icon} className="w-3.5 h-3.5 text-muted" />
+                                  {reward.title}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </Card>
                     );
                   })}
                 </div>
-              )}
-            </Card>
-          </div>
+              </section>
+            )}
+          </>
         )}
-
-        {activeTab === "students" && (
-          <div
-            role="tabpanel"
-            id="tabpanel-students"
-            aria-labelledby="tab-students"
-            className="space-y-8"
-          >
-            {/* Student Overview */}
-            <Card borderColor="border-purple-500" className="p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 font-display">
-                  👥 Student Overview
-                </h2>
-                <Button
-                  variant="primary"
-                  onClick={() => setShowStudentFormModal(true)}
-                  className="shrink-0"
-                >
-                  + Add Student
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {students.map((student) => {
-                  const studentMissions = missions.filter(
-                    (m) => m.assignedStudentId === student.id,
-                  );
-                  const completedCount = studentMissions.filter(
-                    (m) => m.status === "COMPLETED",
-                  ).length;
-                  const purchasedRewardItems = rewards.filter((r) =>
-                    student.purchasedRewards.includes(r.id),
-                  );
-                  return (
-                    <Card
-                      key={student.id}
-                      borderColor="border-gray-300"
-                      className="p-6 hover:shadow-lg transition-shadow"
-                    >
-                      <div className="text-center mb-4">
-                        <div className="flex justify-center mb-2">
-                          <StudentAvatar
-                            studentId={student.id}
-                            studentName={student.name}
-                            size="md"
-                          />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900 font-display">
-                          {student.name}
-                        </h3>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-gray-700">
-                            Spend:
-                          </span>
-                          <TokenDisplay
-                            amount={student.spendTokens}
-                            type="spend"
-                            size="sm"
-                            showLabel={false}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-gray-700">
-                            Save:
-                          </span>
-                          <TokenDisplay
-                            amount={student.saveTokens}
-                            type="save"
-                            size="sm"
-                            showLabel={false}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold text-gray-700">
-                            Grow:
-                          </span>
-                          <TokenDisplay
-                            amount={student.growTokens}
-                            type="grow"
-                            size="sm"
-                            showLabel={false}
-                          />
-                        </div>
-                        <div className="pt-3 border-t-2 border-gray-200">
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-bold">Missions:</span>{" "}
-                            {completedCount} completed
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-gray-700 mb-1">
-                              Purchases ({student.purchasedRewards.length}):
-                            </div>
-                            {purchasedRewardItems.length === 0 ? (
-                              <p className="text-xs text-gray-500">None yet</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {purchasedRewardItems.map((reward) => (
-                                  <span
-                                    key={reward.id}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-gray-800"
-                                  >
-                                    <span>{reward.icon}</span>
-                                    <span>{reward.title}</span>
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </Card>
-          </div>
-        )}
-        </>
-        )}
-
       </main>
 
       <MissionFormModal
@@ -794,6 +636,14 @@ export default function TeacherDashboard() {
           onAssign={handleAssignMission}
         />
       )}
+
+      <ManageStudentModal
+        student={managingId ? students.find((s) => s.id === managingId) ?? null : null}
+        onClose={() => setManagingId(null)}
+        onDone={(msg) => triggerSuccess(msg)}
+      />
+
+      <Toast message={message} />
 
       <SuccessSparkle
         show={showSparkle}

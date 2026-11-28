@@ -4,22 +4,46 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   onClick?: () => void;
-  borderColor?: string;
+  /** Adds a gentle hover lift for clickable cards */
+  interactive?: boolean;
+  as?: "div" | "section" | "article";
 }
 
-export function Card({ children, className = "", onClick, borderColor = "border-gray-200" }: CardProps) {
+export function Card({
+  children,
+  className = "",
+  onClick,
+  interactive = false,
+  as: Tag = "div",
+}: CardProps) {
   return (
-    <div
-      className={`
-        bg-white rounded-2xl border-2 ${borderColor} overflow-hidden
-        shadow-lg transition-all duration-200
-        hover:shadow-xl hover:-translate-y-0.5
-        ${onClick ? "cursor-pointer" : ""}
-        ${className}
-      `}
+    <Tag
+      className={`bg-surface rounded-card border border-line ${
+        interactive || onClick ? "lift cursor-pointer" : ""
+      } ${className}`}
       onClick={onClick}
     >
       {children}
+    </Tag>
+  );
+}
+
+interface SectionHeadingProps {
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}
+
+/** Heading used at the top of a card or page section */
+export function SectionHeading({ title, description, action, className = "" }: SectionHeadingProps) {
+  return (
+    <div className={`flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 ${className}`}>
+      <div>
+        <h2 className="font-display text-2xl tracking-tight text-ink">{title}</h2>
+        {description && <p className="text-muted mt-1 text-[15px]">{description}</p>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

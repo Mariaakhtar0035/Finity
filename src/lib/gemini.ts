@@ -2,24 +2,24 @@ import { ExplanationType, NarratorPage } from "@/types";
 import { callOpenRouter, hasOpenRouterKey } from "./openrouter";
 
 const FALLBACK_TEXTS: Record<ExplanationType, string> = {
-  SUPPLY_DEMAND: "When lots of students want the same mission, the reward goes down. It's like when a popular toy costs more!",
-  SPEND_VS_GROW: "You earned tokens! Some go to Spend (use now), some to Save, and some to Grow (locked and growing).",
-  COMPOUND_GROWTH: "Your Grow tokens earn 2% more every week. The longer you wait, the more you'll have!",
-  MISSION_APPROVAL: "Great job! Your teacher approved your mission and you earned tokens.",
+  SUPPLY_DEMAND: "When lots of kids want the same mission, it pays less. Pick one nobody else wants and you get the full reward!",
+  SPEND_VS_GROW: "Spend is for things you want now. Save is for something bigger. Grow gets a little bigger every week.",
+  COMPOUND_GROWTH: "Your Grow tokens get a little bigger every week: 2 more for every 100. The longer you wait, the more you'll have!",
+  MISSION_APPROVAL: "Great job! Your teacher says your mission is done, so you earned tokens.",
   NARRATOR: "Welcome! Let's learn about money together.",
-  MONEY_STORY_INSIGHT: "You're building a great money story! Keep saving, spending wisely, and watching your Grow tokens grow.",
-  SPENDING_BEHAVIOR_INSIGHT: "Here's a tip: try saving a little before you spend. Your future self will thank you!",
-  TRANSFER_INSIGHT: "Moving tokens to Grow helps them grow over time! Moving to Spend lets you use them now. It's like planting seeds vs picking fruit!",
-  MISSION_SUGGESTION: "Pick a mission few others want—you'll get the full reward! Or try a popular one if you like the challenge.",
+  MONEY_STORY_INSIGHT: "You're doing great! Keep saving, spend carefully, and watch your Grow tokens get bigger.",
+  SPENDING_BEHAVIOR_INSIGHT: "Try saving a little before you spend. Future you will be glad you did!",
+  TRANSFER_INSIGHT: "Putting tokens in Grow is like planting seeds: wait, and you get more. Putting them in Spend is like picking fruit: you get to enjoy it now.",
+  MISSION_SUGGESTION: "Pick a mission few others want and you'll get the full reward! Or try a popular one if you like a challenge.",
 };
 
 const NARRATOR_FALLBACKS: Record<NarratorPage, string> = {
   dashboard: "Welcome back! Check out the marketplace for new missions to earn tokens.",
-  marketplace: "Request missions to earn tokens. Remember, popular missions pay less!",
-  missions: "Complete your missions and ask your teacher to approve them.",
-  grow: "Your Grow tokens are earning 2% every week. Patience pays off!",
+  marketplace: "Ask for missions to earn tokens. Remember, popular missions pay less!",
+  missions: "Finish your missions, then tell your teacher they're done.",
+  grow: "Your Grow tokens get a little bigger every week. Waiting pays off!",
   save: "Saving helps you reach goals. Even small amounts add up over time!",
-  shop: "Spend your tokens wisely. Save some for later and grow some too!",
+  shop: "Spend carefully. Save some for later and put some in Grow too!",
 };
 
 function buildNarratorPrompt(studentName: string, context: any): string {
@@ -49,7 +49,7 @@ function buildNarratorPrompt(studentName: string, context: any): string {
       break;
   }
   
-  return `You are a friendly, encouraging financial narrator for a classroom economy game. You're guiding ${studentName}, a 7-12 year old student. They are on the ${page} page. ${contextDescription}
+  return `You are a friendly, encouraging financial narrator for a classroom economy game. You're guiding ${studentName}, a student in grades 3 to 6. They are on the ${page} page. ${contextDescription}
 
 Give ONE short, personalized, encouraging sentence that:
 - Speaks directly to ${studentName} using their name
@@ -76,7 +76,7 @@ function buildMoneyStoryInsightPrompt(studentName: string, context: any): string
 
   const whatIfFinal = whatIfGrow.length > 0 ? whatIfGrow[whatIfGrow.length - 1] : null;
 
-  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a 7-12 year old student.
+  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a student in grades 3 to 6.
 
 Their money story (Spend, Save, Grow over time):
 ${historySummary}
@@ -108,7 +108,7 @@ function buildSpendingBehaviorPrompt(studentName: string, context: any): string 
     ? availableRewards.slice(0, 5).map((r) => `${r.title} (${r.cost} tokens)`).join(", ")
     : "None.";
 
-  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a 7-12 year old student.
+  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a student in grades 3 to 6.
 
 Their token history (Spend, Save, Grow by week):
 ${historySummary}
@@ -122,7 +122,7 @@ Give exactly 3 suggestions. No greeting. No sign-off like "Keep up the great wor
 (1) A brief pattern insight about how they spend (1 sentence).
 (2) Balance advice—move more to Save or Grow (1 sentence).
 (3) Purchase timing—when to spend vs wait (1 sentence).
-Be specific to their data. Kid-friendly, ages 7-12. CRITICAL: Each line must be a complete sentence. Stop after the 3rd suggestion. Never cut off mid-sentence.`;
+Be specific to their data. Kid-friendly. CRITICAL: Each line must be a complete sentence. Stop after the 3rd suggestion. Never cut off mid-sentence.`;
 }
 
 function buildMissionSuggestionPrompt(studentName: string, context: any): string {
@@ -140,7 +140,7 @@ function buildMissionSuggestionPrompt(studentName: string, context: any): string
     ? popular.slice(0, 3).map((m) => `${m.title} (${m.requestCount} requests, ${m.currentReward} tokens)`).join("; ")
     : "None.";
 
-  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a 7-12 year old student looking at the mission marketplace.
+  return `You are Mrs. Pennyworth, a friendly financial guide for a classroom economy game. ${studentName} is a student in grades 3 to 6 looking at the mission marketplace.
 
 Available missions: ${availableSummary}
 Best value (full price, few requests): ${bestValueSummary}
@@ -168,15 +168,21 @@ function buildPrompt(
   }
   
   const prompts: Record<string, string> = {
-    SUPPLY_DEMAND: `Explain to ${studentName}, a 7-12 year old student, why the mission reward decreased from ${context.baseReward} to ${context.currentReward} tokens because ${context.requestCount} students requested it. Use simple language and make it fun. Keep it to 1-2 sentences.`,
-    SPEND_VS_GROW: `Explain to ${studentName}, a 7-12 year old student, that they just earned ${context.totalReward} tokens, split into ${context.spendAmount} Spend tokens (can use now), ${context.saveAmount} Save tokens (set aside), and ${context.growAmount} Grow tokens (locked and growing). Use simple language. Keep it to 1-2 sentences.`,
-    COMPOUND_GROWTH: `Explain to ${studentName}, a 7-12 year old student, how their ${context.currentGrow} Grow tokens will grow to ${context.futureAmount} tokens in ${context.timeframe} with 2% weekly compound growth. Make it exciting and simple. Keep it to 1-2 sentences.`,
-    MISSION_APPROVAL: `Congratulate ${studentName}, a 7-12 year old student, for completing the mission "${context.missionTitle}" and earning ${context.reward} tokens. Make it encouraging and fun. Keep it to 1-2 sentences.`,
-    TRANSFER_INSIGHT: `Explain to ${studentName}, a 7-12 year old student, why moving tokens between Spend, Save, and Grow matters. Moving to Grow = tokens grow 2% every week for the future. Moving to Spend = use them now. Use simple, kid-friendly language. Keep it to 1-2 sentences.`,
+    SUPPLY_DEMAND: `Explain to ${studentName}, a student in grades 3 to 6, why the mission reward decreased from ${context.baseReward} to ${context.currentReward} tokens because ${context.requestCount} students requested it. Use simple language and make it fun. Keep it to 1-2 sentences.`,
+    SPEND_VS_GROW: `Explain to ${studentName}, a student in grades 3 to 6, that they just earned ${context.totalReward} tokens, split into ${context.spendAmount} Spend tokens (can use now), ${context.saveAmount} Save tokens (set aside), and ${context.growAmount} Grow tokens (locked and growing). Use simple language. Keep it to 1-2 sentences.`,
+    COMPOUND_GROWTH: `Explain to ${studentName}, a student in grades 3 to 6, how their ${context.currentGrow} Grow tokens will grow to ${context.futureAmount} tokens in ${context.timeframe} with 2% weekly compound growth. Make it exciting and simple. Keep it to 1-2 sentences.`,
+    MISSION_APPROVAL: `Congratulate ${studentName}, a student in grades 3 to 6, for completing the mission "${context.missionTitle}" and earning ${context.reward} tokens. Make it encouraging and fun. Keep it to 1-2 sentences.`,
+    TRANSFER_INSIGHT: `Explain to ${studentName}, a student in grades 3 to 6, why moving tokens between Spend, Save, and Grow matters. Moving to Grow = tokens grow 2% every week for the future. Moving to Spend = use them now. Use simple, kid-friendly language. Keep it to 1-2 sentences.`,
   };
 
   return prompts[type] || "";
 }
+
+/**
+ * Added to every prompt: Finity is for grades 3 to 6, so answers need to be
+ * easy for an 8-year-old to read.
+ */
+const READING_LEVEL = `Write so a grade 3 student (about 8 years old) can read it easily: short sentences, everyday words, no jargon. If you use a money word like "interest" or "budget", explain it in a few plain words. Use whole numbers. If you mention a percentage, also say it in plain words (for example, 2% a week means 2 more tokens for every 100).`;
 
 // Use gemini-2.5-flash-lite for highest free tier (15 RPM, 1000 RPD)
 // Fallback: gemini-2.0-flash (10 RPM, 250 RPD)
@@ -294,12 +300,10 @@ export async function generateExplanation(
   try {
     await waitForChatToFinish();
 
-    const prompt = buildPrompt(type, studentName, context);
+    const basePrompt = buildPrompt(type, studentName, context);
+    const prompt = basePrompt ? `${basePrompt}\n\n${READING_LEVEL}` : basePrompt;
 
-    // #region agent log
     const useOR = hasOpenRouterKey();
-    fetch('http://127.0.0.1:7242/ingest/f38e6ae9-aec7-427b-b7e9-fa2897140ff4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'gemini.ts:generateExplanation',message:'Provider check',data:{hasOpenRouterKey:useOR,hasKeySet:!!process.env.OPENROUTER_API_KEY},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     const maxTokens = type === "MONEY_STORY_INSIGHT" ? 450 : type === "SPENDING_BEHAVIOR_INSIGHT" ? 500 : 150;
     if (useOR) {
       const response = await callOpenRouter(
@@ -405,13 +409,13 @@ function buildContextualFallback(ctx: AskNarratorContext | null, studentName: st
   if (!ctx) return "I'm not sure right now. Ask your teacher or try again!";
   const { spendTokens, saveTokens, growTokens, currentPage } = ctx;
   if (currentPage === "shop" && spendTokens > 0) {
-    return `Right now you have ${spendTokens} Spend tokens, ${studentName}! You could buy something in the shop or save them for later — it's your choice!`;
+    return `Right now you have ${spendTokens} Spend tokens, ${studentName}! You could buy something in the shop or save them for later. It's your choice!`;
   }
   if (currentPage === "marketplace") {
-    return `You have ${spendTokens} Spend, ${saveTokens} Save, and ${growTokens} Grow tokens. Missions are a great way to earn more — want to pick one and see what happens?`;
+    return `You have ${spendTokens} Spend, ${saveTokens} Save, and ${growTokens} Grow tokens. Missions are a great way to earn more. Want to pick one?`;
   }
   if (currentPage === "grow" && growTokens > 0) {
-    return `Your ${growTokens} Grow tokens are growing 2% every week! The longer you wait, the more you'll have. Patience pays off!`;
+    return `Your ${growTokens} Grow tokens get a little bigger every week: 2 more for every 100. The longer you wait, the more you'll have!`;
   }
   return `You have ${spendTokens} Spend, ${saveTokens} Save, and ${growTokens} Grow tokens. What would you like to know about them?`;
 }
@@ -431,19 +435,21 @@ export async function askNarrator(
     const contextBlock = buildAskNarratorContextString(context ?? null);
     const conversationBlock = buildRecentConversationBlock(recentMessages || []);
 
-    const systemPrompt = `You are Mrs. Pennyworth, a friendly, fun financial guide for a kid-friendly classroom economy game (Monopoly-themed). Speak directly to ${studentName}, age 7–12. Be enthusiastic, playful, and encouraging like a friendly financial coach.
+    const systemPrompt = `You are Mrs. Pennyworth, a friendly, fun money coach in a classroom economy app. Speak directly to ${studentName}, a student in grades 3 to 6. Be warm, playful and encouraging.
+
+${READING_LEVEL}
 
 Rules:
 1. Keep answers fun, short (1–3 sentences), and kid-friendly. Under 3 sentences.
 2. Always reference actual tokens, missions, or rewards from the data above.
 3. Provide 2–3 options or suggestions for what the student can do next.
-4. Rephrase differently each time—use varied phrasing, playful Monopoly-themed comments, or different ways to describe token balances. Never repeat the same wording.
+4. Rephrase differently each time. Use varied phrasing and different ways to describe token balances. Never repeat the same wording.
 5. Include a simple financial lesson when relevant (e.g., saving, compound growth, supply & demand).
 
 Scenario guides:
 - Greetings ("hi", "hello") → warm reply, optionally ask what they want to do. No token dump.
 - Spending ("Can I buy X?") → check Spend tokens, compare to cost, show what they can afford. Give options.
-- Missions ("Which missions can I do?") → list available missions with rewards. Explain 70% Spend, 30% Grow.
+- Missions ("Which missions can I do?") → list available missions with rewards. The suggested split is half to Spend, a fifth to Save and the rest to Grow (50/20/30), and students can change it.
 - Grow tokens → explain current vs future amount (2% weekly), show excitement for waiting. Tie to piggy bank or bank interest.`;
 
     const userContent = `${conversationBlock}Use their current data:
