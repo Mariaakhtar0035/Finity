@@ -35,8 +35,8 @@ export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartPro
     <Card className="p-6 md:p-8">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
         <div>
-          <h2 className="font-display text-2xl tracking-tight">Supply & demand at a glance</h2>
-          <p className="text-muted mt-1 text-[15px]">The most requested missions, full price vs. today&apos;s price.</p>
+          <h2 className="font-display text-2xl tracking-tight">Full price vs. today</h2>
+          <p className="text-muted mt-1 text-[15px]">The missions kids want most, and what they pay now.</p>
         </div>
         <div className="flex gap-5 text-sm text-ink-soft">
           <span className="inline-flex items-center gap-2">
@@ -49,7 +49,7 @@ export function MarketSupplyDemandChart({ missions }: MarketSupplyDemandChartPro
       </div>
 
       {chartData.length === 0 ? (
-        <p className="text-muted text-center py-16">Request missions to see supply & demand in action.</p>
+        <p className="text-muted text-center py-16">Ask for some missions to see prices change.</p>
       ) : (
         <div className="w-full" style={{ height: chartData.length * ROW_HEIGHT + 32 }}>
           <ResponsiveContainer width="100%" height="100%">

@@ -1,7 +1,23 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { footprintOf, getRoomItem, roomGeometry } from "@/lib/roomCatalog";
+import { defaultLook, lookOf } from "@/lib/avatar";
 import {
   adjustBalance,
   advanceWeek,
+  applyRoomFinish,
+  buyAccessory,
+  setLook,
+  wearAccessory,
+  getGrowAvailable,
+  GROW_LOCK_WEEKS,
+  buyRoomItem,
+  flipRoomItem,
+  getRoom,
+  getRoomStorage,
+  moveRoomItem,
+  placeRoomItem,
+  removeRoomItem,
+  toggleRoomLike,
   buyWithSavings,
   getClassHistory,
   getClassInterestPaid,
@@ -316,5 +332,164 @@ describe("class insights", () => {
     advanceWeek();
     const after = getStudents().reduce((s, x) => s + x.growTokens, 0);
     expect(getClassInterestPaid()).toBe(after - before);
+  });
+});
+
+describe("my room", () => {
+  const placedIds = (id: string) => getRoom(id).items.map((p) => p.itemId);
+  const inRoom = (id: string) => {
+    const room = getRoom(id);
+    const N = roomGeometry(room.style).size;
+    return room.items.every((p) => {
+      const item = getRoomItem(p.itemId)!;
+      if (item.place === "wall") return p.x > 0 && p.x < N && !!p.wall;
+      const [a, b] = footprintOf(item, p.flip);
+      return p.x - a / 2 >= -1e-9 && p.x + a / 2 <= N + 1e-9 && p.y - b / 2 >= -1e-9 && p.y + b / 2 <= N + 1e-9;
+    });
+  };
+
+  it("every student starts with the free starters, arranged inside the room", () => {
+    for (const s of getStudents()) {
+      const room = getRoom(s.id);
+      expect(room.owned["room-cozy-bed"]).toBe(1);
+      expect(placedIds(s.id)).toContain("room-cozy-bed");
+      expect(inRoom(s.id)).toBe(true);
+    }
+    const fresh = createStudent({ name: "Newbie" }).id;
+    expect(placedIds(fresh)).toEqual(expect.arrayContaining(["room-sunny-window", "room-lavender-rug", "room-cozy-bed"]));
+    expect(getRoom(fresh).style).toBe("room-style-classic");
+  });
+
+  it("buying spends Spend tokens, puts the item in a free spot and records it", () => {
+    const spend0 = getStudent("riley")!.spendTokens;
+    const result = buyRoomItem("riley", "room-cozy-lamp");
+    expect(result?.uid).toBeDefined();
+    expect(getStudent("riley")!.spendTokens).toBe(spend0 - 45);
+    expect(placedIds("riley")).toContain("room-cozy-lamp");
+    expect(inRoom("riley")).toBe(true);
+    expect(getActivity("riley")[0]).toMatchObject({ kind: "spent", spend: -45 });
+  });
+
+  it("you can own several of most things, but pets are one of a kind", () => {
+    adjustBalance("riley", "spend", 1000);
+    buyRoomItem("riley", "room-cactus");
+    buyRoomItem("riley", "room-cactus");
+    expect(getRoom("riley").owned["room-cactus"]).toBe(2);
+    expect(placedIds("riley").filter((id) => id === "room-cactus")).toHaveLength(2);
+    expect(buyRoomItem("riley", "room-cat")).not.toBeNull();
+    expect(buyRoomItem("riley", "room-cat")).toBeNull();
+  });
+
+  it("won't sell something you can't afford", () => {
+    adjustBalance("riley", "spend", -10_000);
+    expect(buyRoomItem("riley", "room-cat")).toBeNull();
+    expect(getRoom("riley").owned["room-cat"]).toBeUndefined();
+  });
+
+  it("moving keeps things inside the room, on the floor or a wall", () => {
+    const room = getRoom("riley");
+    const bed = room.items.find((p) => p.itemId === "room-cozy-bed")!;
+    expect(moveRoomItem("riley", bed.uid, { x: 99, y: -5 })).toBe(true);
+    expect(inRoom("riley")).toBe(true);
+    const win = room.items.find((p) => p.itemId === "room-sunny-window")!;
+    moveRoomItem("riley", win.uid, { x: 3, y: 90, wall: "right" });
+    expect(getRoom("riley").items.find((p) => p.uid === win.uid)).toMatchObject({ wall: "right", x: 3, y: 90 });
+    expect(flipRoomItem("riley", bed.uid)).toBe(true);
+    expect(inRoom("riley")).toBe(true);
+    expect(flipRoomItem("riley", win.uid)).toBe(false);
+  });
+
+  it("putting away keeps it owned, and it can be placed again", () => {
+    const rug = getRoom("riley").items.find((p) => p.itemId === "room-lavender-rug")!;
+    expect(removeRoomItem("riley", rug.uid)).toBe(true);
+    expect(placedIds("riley")).not.toContain("room-lavender-rug");
+    expect(getRoomStorage("riley")).toEqual({ "room-lavender-rug": 1 });
+    expect(placeRoomItem("riley", "room-lavender-rug")).toBeTruthy();
+    expect(placeRoomItem("riley", "room-lavender-rug")).toBeNull();
+    expect(placeRoomItem("riley", "room-cat")).toBeNull();
+  });
+
+  it("walls, floors and rooms are bought once and switched between", () => {
+    adjustBalance("riley", "spend", 1000);
+    buyRoomItem("riley", "room-paper-mint-stripes");
+    expect(getRoom("riley").wallpaper).toBe("room-paper-mint-stripes");
+    expect(buyRoomItem("riley", "room-paper-mint-stripes")).toBeNull();
+    expect(applyRoomFinish("riley", "room-paper-cream")).toBe(true);
+    expect(getRoom("riley").wallpaper).toBe("room-paper-cream");
+    expect(applyRoomFinish("riley", "room-floor-checker")).toBe(false);
+  });
+
+  it("moving back to a smaller room pulls everything inside", () => {
+    adjustBalance("riley", "spend", 1000);
+    buyRoomItem("riley", "room-style-loft");
+    const bed = getRoom("riley").items.find((p) => p.itemId === "room-cozy-bed")!;
+    moveRoomItem("riley", bed.uid, { x: 8, y: 8 });
+    applyRoomFinish("riley", "room-style-classic");
+    expect(inRoom("riley")).toBe(true);
+  });
+
+  it("classmates can like a room once, and not their own", () => {
+    const before = getRoom("riley").likes.length;
+    expect(toggleRoomLike("alex", "riley")).toBe(true);
+    expect(getRoom("riley").likes).toHaveLength(before + 1);
+    expect(toggleRoomLike("alex", "riley")).toBe(false);
+    expect(getRoom("riley").likes).toHaveLength(before);
+    expect(toggleRoomLike("riley", "riley")).toBe(false);
+  });
+
+  it("a room item can be a savings goal and bought with Save tokens", () => {
+    setSaveGoalReward("riley", "room-cat");
+    expect(getSaveGoal(getStudent("riley")!)).toMatchObject({ kind: "room", target: 120 });
+    adjustBalance("riley", "save", 200);
+    const save0 = getStudent("riley")!.saveTokens;
+    const spend0 = getStudent("riley")!.spendTokens;
+    expect(buyWithSavings("riley", "room-cat")).toMatchObject({ title: "Sunny the cat" });
+    expect(getStudent("riley")!.saveTokens).toBe(save0 - 120);
+    expect(getStudent("riley")!.spendTokens).toBe(spend0);
+    expect(placedIds("riley")).toContain("room-cat");
+    expect(getStudent("riley")!.saveGoalRewardId).toBeUndefined();
+  });
+});
+
+describe("grow lock", () => {
+  it("new Grow tokens stay put for a few weeks; older ones and interest can move", () => {
+    const s = getStudent("riley")!;
+    const old = s.growTokens;
+    expect(getGrowAvailable(s)).toBe(old);
+    expect(transferTokens("riley", 20, "spend", "grow")).not.toBeNull();
+    expect(getGrowAvailable(getStudent("riley")!)).toBe(old);
+    expect(transferTokens("riley", old + 1, "grow", "spend")).toBeNull();
+    expect(transferTokens("riley", old, "grow", "spend")).not.toBeNull();
+    for (let i = 0; i < GROW_LOCK_WEEKS; i++) advanceWeek();
+    const after = getStudent("riley")!;
+    expect(getGrowAvailable(after)).toBe(after.growTokens);
+    expect(after.growLocks).toEqual([]);
+  });
+});
+
+describe("character", () => {
+  it("starts with a default look, and only accepts real options", () => {
+    const s = getStudent("riley")!;
+    expect(s.look).toBeUndefined();
+    expect(lookOf(s)).toEqual(defaultLook("riley"));
+    setLook("riley", { hair: "braids", skin: "#5e3b26", shirt: "not-a-colour" as string });
+    const look = lookOf(getStudent("riley")!);
+    expect(look.hair).toBe("braids");
+    expect(look.skin).toBe("#5e3b26");
+    expect(look.shirt).toBe(defaultLook("riley").shirt);
+  });
+
+  it("accessories cost Spend tokens, are bought once, and can be taken off and put back on", () => {
+    const spend0 = getStudent("riley")!.spendTokens;
+    expect(buyAccessory("riley", "acc-glasses")).toBe(true);
+    expect(getStudent("riley")!.spendTokens).toBe(spend0 - 20);
+    expect(lookOf(getStudent("riley")!).accessory).toBe("acc-glasses");
+    expect(buyAccessory("riley", "acc-glasses")).toBe(false);
+    expect(wearAccessory("riley", null)).toBe(true);
+    expect(lookOf(getStudent("riley")!).accessory).toBeNull();
+    expect(wearAccessory("riley", "acc-crown")).toBe(false);
+    expect(wearAccessory("riley", "acc-glasses")).toBe(true);
+    adjustBalance("riley", "spend", -10_000);
+    expect(buyAccessory("riley", "acc-crown")).toBe(false);
   });
 });

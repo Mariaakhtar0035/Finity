@@ -1,0 +1,34 @@
+import React from "react";
+
+/**
+ * The Finity mark: an F that's also a sprout. A tapered stem, two veined leaves
+ * for the F's arms and a soil line for its foot, on a soft periwinkle disc.
+ * The glyph is centred on the disc by its bounding box (x 16.5–51, y 6.8–53.7).
+ */
+export function LogoMark({ size = 26, className = "" }: { size?: number | string; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-hidden>
+      <circle cx="32" cy="32" r="30" fill="#e9ecfc" />
+      <g transform="translate(32 32) scale(0.94) translate(-33.75 -30.25)">
+        <path d="M21.6 52C22.2 38 23.2 24 24.3 12.6L25.6 12.6C25.7 24 26.4 38 27.6 52Z" fill="#141414" />
+        <path
+          d="M24.8 13.5C31 7.5 42 6.8 51 10.5C43 16.5 32 18 24.8 13.5Z"
+          fill="#aee2c2"
+          stroke="#141414"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+        <path d="M27.5 13C34 11 42 10 48.5 10.6" fill="none" stroke="#141414" strokeWidth="0.9" strokeLinecap="round" opacity="0.55" />
+        <path
+          d="M25.6 31.5C30 27 37 26 43 28C38 33 31 34.5 25.6 31.5Z"
+          fill="#aee2c2"
+          stroke="#141414"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+        <path d="M28 30.8C32 29.4 36.5 28.8 40.5 28.6" fill="none" stroke="#141414" strokeWidth="0.9" strokeLinecap="round" opacity="0.55" />
+        <path d="M16.5 52.6C21 51.3 28.5 51.3 34 52.6" fill="none" stroke="#141414" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}

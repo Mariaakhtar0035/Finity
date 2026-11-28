@@ -20,6 +20,7 @@ Finity turns financial literacy from a one-time lesson into a daily experience, 
 - **Save toward a real reward:** students pick a reward, watch a jar fill up, see how many weeks are left at their pace, then buy it with their savings
 - Growth projections and a "what if I grew everything?" chart
 - **Reward shop** with classroom perks
+- **My room:** students decorate their own doodle room with Spend tokens; bigger items (like a pet) take saving, and can be set as a savings goal
 - **Teacher dashboard** to create missions and rewards, assign and approve work, adjust balances and reset PINs
 - **Class insights:** class balances over time, the class's split vs. the 50/20/30 guideline, and each student's saving habits
 - **Class-code sign-in:** students enter a code, find their name and use a PIN, with no student emails needed

@@ -53,7 +53,7 @@ interface MrsPennyworthPanelProps {
 }
 
 const WELCOME_MESSAGE =
-  "Hi! I'm Mrs. Pennyworth. I can help you think about your tokens, saving and spending. I'll give you options, not orders. What's on your mind?";
+  "Hi! I'm Mrs. Pennyworth. Ask me anything about your tokens, saving or spending!";
 
 const SUGGESTIONS = [
   "Should I spend or save?",

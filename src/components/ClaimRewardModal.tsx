@@ -18,7 +18,7 @@ interface ClaimRewardModalProps {
 }
 
 const SPEND_VS_GROW_FALLBACK =
-  "You earned tokens! Some go to Spend (use now), some to Save, and some to Grow (locked and growing).";
+  "Spend is for things you want now. Save is for something bigger. Grow gets a little bigger every week, so it helps to put some there.";
 
 export function ClaimRewardModal({
   pendingReward,
@@ -82,7 +82,7 @@ export function ClaimRewardModal({
       title={`${total} tokens earned`}
       description={
         <>
-          for <span className="text-ink">{pendingReward.missionTitle}</span>. How would you like to split them?
+          for <span className="text-ink">{pendingReward.missionTitle}</span>. Where should they go?
         </>
       }
     >
@@ -130,7 +130,7 @@ export function ClaimRewardModal({
 
       <div className="flex items-center justify-between mt-4 text-sm">
         <span className={remaining === 0 ? "text-muted" : "text-negative"}>
-          {remaining === 0 ? "All tokens placed" : `${remaining} token${remaining === 1 ? "" : "s"} left to place`}
+          {remaining === 0 ? "Every token has a place" : `${remaining} more to place`}
         </span>
         {!isRecommended ? (
           <button
@@ -138,7 +138,7 @@ export function ClaimRewardModal({
             onClick={() => setSplit({ spend: recommended.spend, save: recommended.save, grow: recommended.grow })}
             className="underline underline-offset-4 decoration-line-strong hover:decoration-ink"
           >
-            Use suggested split
+            Use the suggested amounts
           </button>
         ) : (
           <button
@@ -146,7 +146,7 @@ export function ClaimRewardModal({
             onClick={handleExplainSplit}
             className="underline underline-offset-4 decoration-line-strong hover:decoration-ink"
           >
-            Why this split?
+            Why these amounts?
           </button>
         )}
       </div>
@@ -162,7 +162,7 @@ export function ClaimRewardModal({
           Later
         </Button>
         <Button onClick={() => onClaim(split.spend, split.save, split.grow)} disabled={remaining !== 0} fullWidth>
-          Claim tokens
+          Collect tokens
         </Button>
       </div>
     </Modal>

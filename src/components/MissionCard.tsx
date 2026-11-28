@@ -73,13 +73,13 @@ export function MissionCard({
     metaLine = assignedStudentName
       ? `Assigned to ${assignedStudentName}`
       : requestedByNames.length > 0
-        ? `Requested by ${requestedByNames.join(", ")}`
+        ? `Asked for by ${requestedByNames.join(", ")}`
         : "Not assigned yet";
   } else if (isMarketplace && mission.requestCount > 0) {
     metaLine =
       mission.requestCount === 1
         ? alreadyRequested
-          ? "You've requested this"
+          ? "You asked for this"
           : "1 classmate wants this"
         : `${mission.requestCount} classmates want this`;
   }
@@ -204,7 +204,7 @@ export function MissionCard({
               onClick={() => onExplainRewardSplit(mission)}
               className="text-sm text-ink underline underline-offset-4 decoration-line-strong hover:decoration-ink"
             >
-              How was my reward split?
+              Where did my tokens go?
             </button>
           )}
         </div>

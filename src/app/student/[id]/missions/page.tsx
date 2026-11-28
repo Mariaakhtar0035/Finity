@@ -7,6 +7,7 @@ import { MissionCard } from "@/components/MissionCard";
 import { ArrowRight } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { MissionTabs } from "@/components/MissionTabs";
 import { Coin } from "@/components/ui/Coin";
 import { Callout } from "@/components/ui/Feedback";
 import { Button } from "@/components/ui/Button";
@@ -20,22 +21,26 @@ import {
   getPendingRewardsForStudent,
   getRewards,
   getActivity,
+  getBalanceHistory,
 } from "@/lib/store";
+import { GrowthComparisonChart } from "@/components/GrowthComparisonChart";
+import { SpendingBehaviorCard } from "@/components/SpendingBehaviorCard";
+import { computeWhatIfGrow } from "@/lib/growthCalculator";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { Mission } from "@/types";
 import { useStore } from "@/lib/useStore";
 
 const SPEND_VS_GROW_FALLBACK =
-  "You earned tokens! Some go to Spend (use now), some to Save, and some to Grow (locked and growing).";
+  "Spend is for things you want now. Save is for something bigger. Grow gets a little bigger every week.";
 
 function getActionHint(status: string): string | undefined {
   switch (status) {
     case "IN_PROGRESS":
-      return "Finish it, then ask your teacher to approve it.";
+      return "Finish it, then tell your teacher it's done.";
     case "COMPLETED":
-      return "Done! Tokens earned.";
+      return "Done! You earned the tokens.";
     case "REQUESTED":
-      return "Waiting for your teacher to assign it.";
+      return "Waiting for your teacher to give it to you.";
     default:
       return undefined;
   }
@@ -54,6 +59,13 @@ export default function ActivityPage() {
   const pendingRewards = getPendingRewardsForStudent(studentId);
   const purchasedRewardItems = student
     ? getRewards().filter((r) => student.purchasedRewards.includes(r.id))
+    : [];
+  const history = getBalanceHistory(studentId);
+  const availableRewards = student
+    ? getRewards()
+        .filter((r) => !r.soldOut && !student.purchasedRewards.includes(r.id))
+        .slice(0, 5)
+        .map((r) => ({ title: r.title, cost: r.cost }))
     : [];
 
   const handleExplainRewardSplit = (mission: Mission) => {
@@ -79,10 +91,11 @@ export default function ActivityPage() {
 
   return (
     <div className="space-y-12">
+      <MissionTabs studentId={studentId} />
       <PageHeader
-        eyebrow="Activity"
+        eyebrow="My activity"
         title="Your missions & purchases"
-        description="Keep track of what you're working on, what you've earned and what you've bought."
+        description="See your missions, the tokens you earned and the things you bought."
       />
 
       {pendingRewards.length > 0 && (
@@ -108,7 +121,7 @@ export default function ActivityPage() {
         {missions.length === 0 ? (
           <EmptyState
             title="No missions yet"
-            description="Head to the marketplace to request one. Your teacher will assign it to you."
+            description="Pick a mission to ask for. Your teacher will give it to you."
             action={
               <Link href={`/student/${studentId}/marketplace`}>
                 <Button>Browse missions</Button>
@@ -131,11 +144,31 @@ export default function ActivityPage() {
         )}
       </section>
 
+      {/* Money story and tips (moved here from Home) */}
+      {student && (
+        <div className="grid lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+          <Card className="p-6 md:p-8">
+            <GrowthComparisonChart history={history} whatIfGrow={computeWhatIfGrow(history)} />
+          </Card>
+          <SpendingBehaviorCard
+            studentId={studentId}
+            studentName={student.name}
+            history={history}
+            purchasedRewardItems={purchasedRewardItems}
+            currentSpend={student.spendTokens}
+            currentSave={student.saveTokens}
+            currentGrow={student.growTokens}
+            saveGoal={student.saveGoal}
+            availableRewards={availableRewards}
+          />
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         {/* Money activity */}
         <Card className="p-6 md:p-8">
-          <SectionHeading title="Money activity" description="Every token you've earned, spent, moved or grown." className="mb-2" />
-          <ActivityFeed entries={getActivity(studentId)} limit={8} emptyText="Nothing yet. Claim a reward or buy something to see it here." />
+          <SectionHeading title="Money activity" description="Every token you earned, spent, moved or grew." className="mb-2" />
+          <ActivityFeed entries={getActivity(studentId)} limit={8} emptyText="Nothing yet. Collect tokens or buy something and it will show up here." />
         </Card>
 
         {/* My Purchases */}
@@ -164,7 +197,7 @@ export default function ActivityPage() {
       <Modal
         isOpen={!!splitModalMission}
         onClose={() => setSplitModalMission(null)}
-        title="How was my reward split?"
+        title="Where did my tokens go?"
       >
         <Callout loading={loadingSplitExplanation} className="mb-6">
           {splitExplanation}

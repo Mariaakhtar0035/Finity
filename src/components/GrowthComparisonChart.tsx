@@ -29,7 +29,7 @@ const AXIS_STYLE = { fontFamily: "var(--font-jost), sans-serif", fontSize: 12, f
 
 /**
  * Spend / Save / Grow balance history.
- * "If I grew everything" overlays a dashed line computed by computeWhatIfGrow(),
+ * "If I put it all in Grow" overlays a dashed line computed by computeWhatIfGrow(),
  * simulating 100% of earnings going to Grow with the same weekly timing.
  */
 export function GrowthComparisonChart({ history, whatIfGrow }: GrowthComparisonChartProps) {
@@ -51,8 +51,8 @@ export function GrowthComparisonChart({ history, whatIfGrow }: GrowthComparisonC
           <h2 className="font-display text-2xl tracking-tight">Your money story</h2>
           <p className="text-muted mt-1 text-[15px]">
             {showWhatIf
-              ? "The dashed line shows what would happen if every token went to Grow."
-              : "How each of your balances has changed week by week."}
+              ? "The dashed line shows what you'd have if you put every token in Grow."
+              : "How your tokens changed each week."}
           </p>
         </div>
         <Segmented
@@ -61,7 +61,7 @@ export function GrowthComparisonChart({ history, whatIfGrow }: GrowthComparisonC
           onChange={setMode}
           options={[
             { value: "real", label: "My history" },
-            { value: "whatif", label: "If I grew everything" },
+            { value: "whatif", label: "If I put it all in Grow" },
           ]}
         />
       </div>

@@ -20,9 +20,9 @@ const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : "http://localhost:3000";
 
-const title = "Finity — Money lessons kids actually remember";
+const title = "Finity — Learn money by using it";
 const description =
-  "A classroom economy where students earn, save and grow tokens to build real financial habits.";
+  "A classroom economy where students earn, save and grow tokens to build real money habits. Recommended for grades 3 to 6.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

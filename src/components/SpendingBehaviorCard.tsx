@@ -30,7 +30,7 @@ interface SpendingBehaviorCardProps {
 }
 
 const SPENDING_BEHAVIOR_FALLBACK =
-  "Here's a tip: try saving a little before you spend. Your future self will thank you!";
+  "Try saving a little before you spend. Future you will be glad you did!";
 
 const DOT_COLORS = ["#f6c88f", "#aee2c2", "#b6c1f5", "#d6c6f4"];
 
@@ -131,14 +131,14 @@ export function SpendingBehaviorCard({
       <div className="flex items-center gap-3 mb-5">
         <MrsPennyworthAvatar size="md" state={loading ? "thinking" : "idle"} />
         <div>
-          <h2 className="font-display text-2xl tracking-tight leading-tight">Today&apos;s insights</h2>
+          <h2 className="font-display text-2xl tracking-tight leading-tight">Tips for you</h2>
           <p className="text-sm text-muted">From Mrs. Pennyworth</p>
         </div>
       </div>
 
       {loading ? (
         <div className="space-y-3">
-          <TypingDots label="Looking at your habits" />
+          <TypingDots label="Thinking" />
           <div className="h-4 bg-paper rounded-full w-full animate-pulse" />
           <div className="h-4 bg-paper rounded-full w-5/6 animate-pulse" />
           <div className="h-4 bg-paper rounded-full w-2/3 animate-pulse" />

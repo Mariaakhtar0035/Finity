@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Coin } from "@/components/ui/Coin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SproutDoodle } from "@/components/ui/Doodles";
-import { getInterestEarned, getStudent } from "@/lib/store";
+import { GROW_LOCK_WEEKS, getGrowLocks, getInterestEarned, getStudent } from "@/lib/store";
 import { useStore } from "@/lib/useStore";
 import { getProjections, getGrowthPercentage } from "@/lib/growthCalculator";
 
@@ -20,6 +20,8 @@ export default function GrowTokensPage() {
 
   const now = student.growTokens;
   const interestEarned = getInterestEarned(studentId);
+  const locks = getGrowLocks(student);
+  const lockedNow = locks.reduce((sum, l) => sum + l.amount, 0);
   const projections = getProjections(now);
   const max = Math.max(projections.oneYear, 1);
 
@@ -34,8 +36,8 @@ export default function GrowTokensPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Grow"
-        title="Patience, made visible"
-        description="Grow tokens are locked away and earn 2% every week. The longer you wait, the faster they grow."
+        title="Watch your tokens grow"
+        description={`Every week, your Grow tokens get a little bigger: 2 more for every 100 you have. Tokens you put in stay for ${GROW_LOCK_WEEKS} weeks. The longer you wait, the more you get.`}
       />
 
       {/* Balance */}
@@ -51,14 +53,21 @@ export default function GrowTokensPage() {
             </div>
             <div className="flex flex-wrap gap-2 mt-6">
               <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-mint-soft text-sm">
-                <TrendingUp className="w-4 h-4" /> +2% every week
+                <TrendingUp className="w-4 h-4" /> +2 for every 100, each week
               </span>
               <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-paper text-sm text-ink-soft">
-                <Lock className="w-3.5 h-3.5" /> Locked while it grows
+                <Lock className="w-3.5 h-3.5" />
+                {lockedNow > 0 ? (
+                  <span className="num">
+                    {lockedNow} locked · next unlocks week {locks[0].untilWeek}
+                  </span>
+                ) : (
+                  `New tokens stay ${GROW_LOCK_WEEKS} weeks`
+                )}
               </span>
               {interestEarned > 0 && (
                 <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-paper text-sm text-ink-soft num">
-                  {interestEarned} earned in interest so far
+                  {interestEarned} extra tokens earned so far (that&apos;s called interest)
                 </span>
               )}
             </div>
@@ -80,8 +89,8 @@ export default function GrowTokensPage() {
             <p className="text-sm text-muted">In {p.label}</p>
             <p className="display text-5xl num mt-2">{p.value}</p>
             <p className="text-sm mt-3">
-              <span className="text-positive font-medium num">+{getGrowthPercentage(now, p.value)}%</span>
-              <span className="text-muted"> · {p.value - now} more tokens</span>
+              <span className="text-positive font-medium num">+{p.value - now} tokens</span>
+              <span className="text-muted num"> · {getGrowthPercentage(now, p.value)}% more</span>
             </p>
           </Card>
         ))}
@@ -91,7 +100,7 @@ export default function GrowTokensPage() {
       <Card className="p-6 md:p-8">
         <h2 className="font-display text-2xl tracking-tight">Watch it grow</h2>
         <p className="text-muted mt-1 text-[15px]">
-          This is compound growth: your tokens earn tokens, and those new tokens earn even more.
+          Your tokens earn tokens. Then those new tokens earn tokens too! That&apos;s called compound growth.
         </p>
         <div className="space-y-5 mt-8">
           {rows.map((r, i) => (

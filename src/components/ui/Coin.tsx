@@ -17,7 +17,7 @@ export const TOKEN_META: Record<
   spend: {
     label: "Spend",
     short: "Use now",
-    description: "Ready to use in the reward shop.",
+    description: "For things you want now.",
     face: "#f6c88f",
     edge: "#e2a55c",
     soft: "bg-peach-soft",
@@ -26,7 +26,7 @@ export const TOKEN_META: Record<
   save: {
     label: "Save",
     short: "Set aside",
-    description: "Set aside for a goal you choose.",
+    description: "For something bigger you pick.",
     face: "#b6c1f5",
     edge: "#7f90e3",
     soft: "bg-periwinkle-soft",
@@ -35,7 +35,7 @@ export const TOKEN_META: Record<
   grow: {
     label: "Grow",
     short: "Locked & growing",
-    description: "Locked away, earning 2% every week.",
+    description: "Gets a little bigger every week (2%).",
     face: "#aee2c2",
     edge: "#5fbf88",
     soft: "bg-mint-soft",

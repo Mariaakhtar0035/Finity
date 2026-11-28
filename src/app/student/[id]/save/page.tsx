@@ -16,6 +16,7 @@ import { SuccessSparkle } from "@/components/SuccessSparkle";
 import { MrsPennyworthAvatar } from "@/components/MrsPennyworthAvatar";
 import {
   buyWithSavings,
+  getRoom,
   getRewards,
   getSaveGoal,
   getStudent,
@@ -25,11 +26,12 @@ import {
 } from "@/lib/store";
 import { rewardTint } from "@/lib/palette";
 import { useStore } from "@/lib/useStore";
-import type { Reward } from "@/types";
+import { ROOM_ITEMS } from "@/lib/roomCatalog";
+import { RoomThumb } from "@/components/room/RoomArt";
 
 const TIPS = [
-  { title: "Start small", body: "Even a few tokens each time adds up faster than you'd think." },
-  { title: "Name your goal", body: "Saving for something specific makes waiting a lot easier." },
+  { title: "Start small", body: "Even a few tokens each time add up fast." },
+  { title: "Name your goal", body: "Waiting is easier when you know what you're saving for." },
   { title: "Save first", body: "Put a little in Save before you spend the rest." },
 ];
 
@@ -39,7 +41,7 @@ export default function SaveTokensPage() {
   useStore();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customValue, setCustomValue] = useState("");
-  const [bought, setBought] = useState<Reward | null>(null);
+  const [bought, setBought] = useState<{ title: string } | null>(null);
   const [celebrate, setCelebrate] = useState(false);
 
   const student = getStudent(studentId);
@@ -53,18 +55,31 @@ export default function SaveTokensPage() {
   const pace = getWeeklySavePace(student);
   const weeksLeft = pace > 0 ? Math.ceil(remaining / pace) : null;
 
-  const options = getRewards()
+  const room = getRoom(studentId);
+  type Option = { id: string; title: string; cost: number; icon: React.ReactNode; tint: string };
+  const rewardOptions: Option[] = getRewards()
     .filter((r) => !r.soldOut && !student.purchasedRewards.includes(r.id))
-    .sort((a, b) => a.cost - b.cost);
+    .sort((a, b) => a.cost - b.cost)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      cost: r.cost,
+      tint: rewardTint(r.id),
+      icon: <RewardIcon icon={r.icon} className="w-5 h-5" />,
+    }));
+  const roomOptions: Option[] = ROOM_ITEMS.filter((i) => i.cost > 0 && !(room.owned[i.id] ?? 0))
+    .sort((a, b) => a.cost - b.cost)
+    .map((i) => ({ id: i.id, title: i.name, cost: i.cost, tint: "#f6efe4", icon: <RoomThumb itemId={i.id} className="w-8 h-8" /> }));
+  const goalId = goal.kind === "reward" ? goal.reward.id : goal.kind === "room" ? goal.item.id : null;
 
   const customNum = parseInt(customValue, 10);
   const customValid = !isNaN(customNum) && customNum >= 1 && customNum <= 9999;
 
   const handleBuy = () => {
-    if (goal.kind !== "reward") return;
-    const result = buyWithSavings(studentId, goal.reward.id);
+    if (!goalId) return;
+    const result = buyWithSavings(studentId, goalId);
     if (result) {
-      setBought(result.reward);
+      setBought({ title: result.title });
       setCelebrate(true);
     }
   };
@@ -97,6 +112,13 @@ export default function SaveTokensPage() {
                       <RewardIcon icon={goal.reward.icon} className="w-5 h-5" />
                     </span>
                     <h2 className="font-display text-3xl tracking-tight leading-tight">{goal.reward.title}</h2>
+                  </div>
+                ) : goal.kind === "room" ? (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="w-12 h-12 rounded-full border-2 border-ink bg-sand-soft flex items-center justify-center shrink-0 overflow-hidden">
+                      <RoomThumb itemId={goal.item.id} className="w-9 h-9" />
+                    </span>
+                    <h2 className="font-display text-3xl tracking-tight leading-tight">{goal.item.name}</h2>
                   </div>
                 ) : (
                   <h2 className="font-display text-3xl tracking-tight mt-1 num">{goal.target} tokens</h2>
@@ -132,7 +154,7 @@ export default function SaveTokensPage() {
 
             <div className="mt-auto pt-6">
               {reached ? (
-                goal.kind === "reward" ? (
+                goal.kind !== "amount" ? (
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between rounded-2xl bg-mint-soft p-4">
                     <p className="font-medium">You&apos;ve saved enough. Nice patience!</p>
                     <Button onClick={handleBuy}>Buy with savings</Button>
@@ -145,8 +167,8 @@ export default function SaveTokensPage() {
                   <span className="font-medium text-ink num">{remaining}</span> to go
                   {weeksLeft !== null ? (
                     <>
-                      {" "}· about <span className="font-medium text-ink num">{weeksLeft}</span> week{weeksLeft === 1 ? "" : "s"} at
-                      your recent pace
+                      {" "}· about <span className="font-medium text-ink num">{weeksLeft}</span> week{weeksLeft === 1 ? "" : "s"} if you
+                      keep saving like this
                     </>
                   ) : (
                     <>
@@ -186,40 +208,52 @@ export default function SaveTokensPage() {
 
       {/* Goal picker */}
       <Modal isOpen={pickerOpen} onClose={() => setPickerOpen(false)} title="What are you saving for?">
-        <ul className="space-y-2 max-h-[340px] overflow-y-auto -mx-1 px-1">
-          {options.map((r) => {
-            const active = goal.kind === "reward" && goal.reward.id === r.id;
-            const pct = Math.min(100, Math.round((saved / r.cost) * 100));
-            return (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSaveGoalReward(studentId, r.id);
-                    setPickerOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
-                    active ? "border-ink bg-paper" : "border-line hover:border-ink"
-                  }`}
-                >
-                  <span
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: rewardTint(r.id) }}
-                  >
-                    <RewardIcon icon={r.icon} className="w-5 h-5" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block font-medium truncate">{r.title}</span>
-                    <span className="block text-xs text-muted num">
-                      {r.cost} tokens · {pct >= 100 ? "you can afford it" : `${pct}% saved`}
-                    </span>
-                  </span>
-                  {active && <Check className="w-4 h-4 shrink-0" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="max-h-[360px] overflow-y-auto -mx-1 px-1 space-y-5">
+          {[
+            { label: "Rewards", items: rewardOptions },
+            { label: "For your room", items: roomOptions },
+          ].map((group) =>
+            group.items.length === 0 ? null : (
+              <div key={group.label}>
+                <p className="text-xs font-medium tracking-wide uppercase text-muted mb-2">{group.label}</p>
+                <ul className="space-y-2">
+                  {group.items.map((o) => {
+                    const active = goalId === o.id;
+                    const pct = Math.min(100, Math.round((saved / o.cost) * 100));
+                    return (
+                      <li key={o.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSaveGoalReward(studentId, o.id);
+                            setPickerOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${
+                            active ? "border-ink bg-paper" : "border-line hover:border-ink"
+                          }`}
+                        >
+                          <span
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+                            style={{ background: o.tint }}
+                          >
+                            {o.icon}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-medium truncate">{o.title}</span>
+                            <span className="block text-xs text-muted num">
+                              {o.cost} tokens · {pct >= 100 ? "you can afford it" : `${pct}% saved`}
+                            </span>
+                          </span>
+                          {active && <Check className="w-4 h-4 shrink-0" />}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ),
+          )}
+        </div>
 
         <form
           className="mt-5 pt-5 border-t border-line"

@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
+import { LogoMark } from "@/components/ui/LogoMark";
 
-export const alt = "Finity — Money lessons kids actually remember";
+export const alt = "Finity — Learn money by using it";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -60,8 +61,8 @@ async function loadFont(family: string, weight: number, text: string): Promise<A
   }
 }
 
-const HEADLINE = "Money lessons kids actually remember";
-const BRAND = "Finity";
+const HEADLINE = "Learn money by using it";
+const BRAND = "Finity\u0131";
 
 export default async function OpengraphImage() {
   const serif = await loadFont("Fraunces", 500, HEADLINE + BRAND);
@@ -81,8 +82,22 @@ export default async function OpengraphImage() {
       >
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", width: 700 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <Coin face="#f6c88f" edge="#e2a55c" size={48} glyph="F" />
-            <div style={{ fontSize: 48, fontFamily: serifFamily, letterSpacing: -1 }}>{BRAND}</div>
+            <LogoMark size={64} />
+            <div style={{ display: "flex", fontSize: 52, fontFamily: serifFamily, letterSpacing: -1, lineHeight: 1 }}>
+              F
+              <div style={{ position: "relative", display: "flex" }}>
+                ı
+                <div style={{ position: "absolute", top: 3, left: 1, width: 13, height: 13, borderRadius: 999, background: "#f6c88f" }} />
+              </div>
+              n
+              <div style={{ position: "relative", display: "flex" }}>
+                ı
+                <svg width="15" height="15" viewBox="0 0 18 18" style={{ position: "absolute", top: 2, left: 0 }}>
+                  <path d="M3 12C3 5 8 2.5 15 4C15.5 10.5 10 15 3 12Z" fill="#aee2c2" />
+                </svg>
+              </div>
+              ty
+            </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ fontSize: 80, lineHeight: 1.02, letterSpacing: -2.5, fontFamily: serifFamily }}>

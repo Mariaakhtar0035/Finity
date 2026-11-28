@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Lock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin, TOKEN_META } from "@/components/ui/Coin";
 import { Callout } from "@/components/ui/Feedback";
-import { transferTokens, type TokenBucket } from "@/lib/store";
+import { GROW_LOCK_WEEKS, getGrowAvailable, getGrowLocks, getStudent, transferTokens, type TokenBucket } from "@/lib/store";
 
 const BUCKETS: TokenBucket[] = ["spend", "save", "grow"];
 
@@ -17,10 +17,12 @@ interface TransferTokensCardProps {
   saveTokens: number;
   growTokens: number;
   onTransfer: () => void;
+  /** Inside a popup: no card frame or heading (the popup has its own title) */
+  bare?: boolean;
 }
 
 const TRANSFER_INSIGHT_FALLBACK =
-  "Moving tokens to Grow helps them grow over time! Moving to Spend lets you use them now. It's like planting seeds vs picking fruit!";
+  "Putting tokens in Grow is like planting seeds: wait, and you get more. Putting them in Spend is like picking fruit: you get to enjoy it now.";
 
 function BucketPicker({
   label,
@@ -74,6 +76,7 @@ export function TransferTokensCard({
   saveTokens,
   growTokens,
   onTransfer,
+  bare = false,
 }: TransferTokensCardProps) {
   const [amount, setAmount] = useState("");
   const [from, setFrom] = useState<TokenBucket>("spend");
@@ -84,7 +87,10 @@ export function TransferTokensCard({
   const [loadingTransferExplanation, setLoadingTransferExplanation] = useState(false);
 
   const balances = { spend: spendTokens, save: saveTokens, grow: growTokens };
-  const maxAmount = balances[from];
+  const student = getStudent(studentId);
+  const growAvailable = student ? getGrowAvailable(student) : growTokens;
+  const nextUnlock = student ? getGrowLocks(student)[0] : undefined;
+  const maxAmount = from === "grow" ? growAvailable : balances[from];
   const canTransfer = from !== to && maxAmount > 0;
 
   const handleExplainTransfer = () => {
@@ -106,11 +112,15 @@ export function TransferTokensCard({
     setSuccess(null);
     const num = parseInt(amount, 10);
     if (isNaN(num) || num <= 0) {
-      setError("Enter an amount above zero.");
+      setError("Type how many tokens to move.");
       return;
     }
     if (num > maxAmount) {
-      setError(`You only have ${maxAmount} ${TOKEN_META[from].label} tokens.`);
+      setError(
+        from === "grow" && growAvailable < growTokens
+          ? `Only ${maxAmount} Grow tokens can move right now. New ones have to stay for ${GROW_LOCK_WEEKS} weeks.`
+          : `You only have ${maxAmount} ${TOKEN_META[from].label} tokens.`,
+      );
       return;
     }
     const result = transferTokens(studentId, num, from, to);
@@ -120,15 +130,15 @@ export function TransferTokensCard({
       onTransfer();
       setTimeout(() => setSuccess(null), 3000);
     } else {
-      setError("Could not transfer. Try again.");
+      setError("That didn't work. Try again.");
     }
   };
 
   return (
-    <Card className="p-6 md:p-8">
-      <h2 className="font-display text-2xl tracking-tight">Move tokens</h2>
+    <Card className={bare ? "p-0! border-0! shadow-none! bg-transparent!" : "p-6 md:p-8"}>
+      {!bare && <h2 className="font-display text-2xl tracking-tight">Move tokens</h2>}
       <p className="text-muted mt-1 text-[15px]">
-        Shift tokens between your accounts any time.{" "}
+        Move tokens from one place to another. Tokens you put in Grow have to stay for {GROW_LOCK_WEEKS} weeks.{" "}
         <button
           type="button"
           onClick={handleExplainTransfer}
@@ -155,6 +165,20 @@ export function TransferTokensCard({
             if (to === b) setTo(BUCKETS.find((x) => x !== b)!);
           }}
         />
+        {from === "grow" && growAvailable < growTokens && (
+          <p className="flex items-start gap-2 text-sm text-ink-soft bg-paper rounded-2xl px-3.5 py-2.5">
+            <Lock className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              <span className="num">{growAvailable}</span> of <span className="num">{growTokens}</span> can move now.
+              {nextUnlock && (
+                <>
+                  {" "}
+                  <span className="num">{nextUnlock.amount}</span> more unlock in week <span className="num">{nextUnlock.untilWeek}</span>.
+                </>
+              )}
+            </span>
+          </p>
+        )}
         <div className="flex justify-center" aria-hidden>
           <span className="w-8 h-8 rounded-full bg-paper flex items-center justify-center">
             <ArrowDown className="w-4 h-4 text-muted" />

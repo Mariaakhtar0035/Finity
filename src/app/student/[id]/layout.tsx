@@ -9,9 +9,8 @@ import {
   ListChecks,
   LogOut,
   PiggyBank,
+  Sofa,
   Sprout,
-  Store,
-  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
@@ -105,15 +104,15 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
   }
 
   const base = `/student/${studentId}`;
-  const navItems: { href: string; label: string; icon: LucideIcon }[] = [
+  const navItems: { href: string; label: string; icon: LucideIcon; also?: string[] }[] = [
     { href: base, label: "Home", icon: Home },
-    { href: `${base}/marketplace`, label: "Missions", icon: Store },
-    { href: `${base}/missions`, label: "Activity", icon: ListChecks },
+    { href: `${base}/marketplace`, label: "Missions", icon: ListChecks, also: [`${base}/missions`, `${base}/leaderboard`] },
     { href: `${base}/save`, label: "Save", icon: PiggyBank },
     { href: `${base}/grow`, label: "Grow", icon: Sprout },
-    { href: `${base}/shop`, label: "Reward shop", icon: Gift },
-    { href: `${base}/leaderboard`, label: "Market trends", icon: TrendingUp },
+    { href: `${base}/shop`, label: "Shop", icon: Gift },
+    { href: `${base}/room`, label: "My room", icon: Sofa },
   ];
+  const isActiveItem = (item: (typeof navItems)[number]) => pathname === item.href || !!item.also?.includes(pathname);
 
   // Determine current page for narrator
   const getPage = (): NarratorPage => {
@@ -173,7 +172,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
         <nav className="flex flex-col gap-0.5" aria-label="Main">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isActiveItem(item);
             const Icon = item.icon;
             return (
               <Link
@@ -236,7 +235,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           aria-label="Main"
         >
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isActiveItem(item);
             return (
               <Link
                 key={item.href}

@@ -13,13 +13,18 @@ const AVATAR_FILLS = [
   "#e5cfae", // sand
 ] as const;
 
-function hashString(str: string): number {
+export function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash);
+}
+
+/** The pastel colour used for a student's avatar (also their shirt in My room) */
+export function avatarFill(studentId: string): string {
+  return AVATAR_FILLS[hashString(studentId) % AVATAR_FILLS.length];
 }
 
 interface StudentAvatarProps {

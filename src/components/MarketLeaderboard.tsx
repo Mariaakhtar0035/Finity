@@ -11,7 +11,7 @@ import { Coin } from "@/components/ui/Coin";
 import { MarketSupplyDemandChart } from "@/components/MarketSupplyDemandChart";
 
 const MISSION_SUGGESTION_FALLBACK =
-  "Pick a mission few others want—you'll get the full reward! Or try a popular one if you like the challenge.";
+  "Pick a mission few others want and you'll get the full reward! Or try a popular one if you like a challenge.";
 
 interface MissionStats {
   mission: Mission;
@@ -118,11 +118,10 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
       <Card className="p-6 md:p-8 bg-peach-soft! border-[#f3dcbc]!">
         <div className="md:flex md:items-start md:justify-between gap-8">
           <div className="max-w-2xl">
-            <h2 className="font-display text-2xl tracking-tight">How supply & demand works</h2>
+            <h2 className="font-display text-2xl tracking-tight">Why some missions pay less</h2>
             <p className="text-ink-soft mt-2 leading-relaxed">
-              When lots of students want the same mission (high demand) but only one person can do it
-              (limited supply), each request makes it worth a little less. Popular missions pay less;
-              overlooked missions keep their full reward.
+              Only one kid can do each mission. When lots of kids ask for the same one, it pays a little less
+              each time. Missions nobody else wants keep their full reward. Grown-ups call this supply and demand.
             </p>
           </div>
           {studentName && (
@@ -141,9 +140,9 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Missions requested", value: stats.requestedMissions },
-          { label: "Total requests", value: stats.totalRequests },
-          { label: "Avg. requests / mission", value: stats.avg.toFixed(1) },
+          { label: "Missions kids want", value: stats.requestedMissions },
+          { label: "Times kids asked", value: stats.totalRequests },
+          { label: "Asks per mission", value: stats.avg.toFixed(1) },
         ].map((s) => (
           <Card key={s.label} className="p-5">
             <p className="text-sm text-muted">{s.label}</p>
@@ -151,7 +150,7 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
           </Card>
         ))}
         <Card className="p-5">
-          <p className="text-sm text-muted">Most wanted</p>
+          <p className="text-sm text-muted">Most popular</p>
           <p className="font-display text-xl tracking-tight mt-2 leading-snug line-clamp-2">{stats.hottest}</p>
         </Card>
       </div>
@@ -160,9 +159,9 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
 
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <Card className="p-6 md:p-8">
-          <SectionHeading title="Most requested" description="High demand means a lower reward." />
+          <SectionHeading title="Most wanted" description="Lots of kids want these, so they pay less." />
           {topDemand.length === 0 ? (
-            <p className="text-muted py-8">No missions requested yet.</p>
+            <p className="text-muted py-8">Nobody has asked for a mission yet.</p>
           ) : (
             <ul className="divide-y divide-line mt-2">
               {topDemand.map((stat, i) => (
@@ -170,7 +169,7 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
                   key={stat.mission.id}
                   rank={i + 1}
                   title={stat.mission.title}
-                  subtitle={`${stat.mission.requestCount} request${stat.mission.requestCount === 1 ? "" : "s"}`}
+                  subtitle={`${stat.mission.requestCount} kid${stat.mission.requestCount === 1 ? "" : "s"} asked`}
                   right={
                     <span className="inline-flex items-center gap-1.5">
                       <Coin type="spend" size={20} />
@@ -184,9 +183,9 @@ export function MarketLeaderboard({ missions, studentName }: MarketLeaderboardPr
         </Card>
 
         <Card className="p-6 md:p-8">
-          <SectionHeading title="Biggest price drops" description="How far each reward has fallen from full price." />
+          <SectionHeading title="Biggest drops" description="How much less each one pays now." />
           {sortedByDrop.length === 0 ? (
-            <p className="text-muted py-8">No price drops yet. Every mission is at full price.</p>
+            <p className="text-muted py-8">Every mission still pays its full reward.</p>
           ) : (
             <ul className="divide-y divide-line mt-2">
               {sortedByDrop.slice(0, 5).map((stat, i) => (

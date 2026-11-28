@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { MissionTabs } from "@/components/MissionTabs";
 import { Callout, LiveIndicator } from "@/components/ui/Feedback";
 import { StarDoodle } from "@/components/ui/Doodles";
 import { SuccessSparkle } from "@/components/SuccessSparkle";
@@ -15,7 +16,7 @@ import { useStore } from "@/lib/useStore";
 import type { Mission } from "@/types";
 
 const SUPPLY_DEMAND_FALLBACK =
-  "When lots of students want the same mission, the reward goes down. It's like when a popular toy costs less when there's lots of it!";
+  "When lots of kids want the same mission, it pays less. Pick one nobody else wants and you get the full reward!";
 
 export default function MarketplacePage() {
   const params = useParams();
@@ -50,11 +51,11 @@ export default function MarketplacePage() {
       setRewardAdjusted(adjusted);
       setSupplyDemandExplanation(null);
 
-      setModalTitle("Mission requested");
+      setModalTitle("You asked for it!");
       setModalMessage(
         adjusted
-          ? `Other classmates want this one too, so the reward is now ${result.currentReward} tokens.`
-          : `You'll earn ${result.currentReward} tokens once your teacher assigns and approves it.`,
+          ? `Other kids want this mission too, so it now pays ${result.currentReward} tokens.`
+          : `When your teacher says it's done, you'll get ${result.currentReward} tokens.`,
       );
       setShowModal(true);
 
@@ -88,8 +89,8 @@ export default function MarketplacePage() {
     } else {
       setRewardAdjusted(false);
       setSupplyDemandExplanation(null);
-      setModalTitle("Already requested");
-      setModalMessage("You've already asked for this mission. Your teacher will assign it soon.");
+      setModalTitle("You already asked");
+      setModalMessage("You already asked for this mission. Your teacher will give it to you soon.");
       setShowModal(true);
     }
   };
@@ -138,10 +139,11 @@ export default function MarketplacePage() {
 
   return (
     <div>
+      <MissionTabs studentId={studentId} />
       <PageHeader
         eyebrow="Mission marketplace"
         title="Pick your next mission"
-        description="Request a mission and your teacher will assign it. The more classmates who want a mission, the lower its reward."
+        description="Ask for a mission and your teacher will give it to you. If lots of kids want the same one, it pays less. Missions nobody else wants pay the most!"
         action={<LiveIndicator lastUpdate={getLastChangedAt()} />}
       />
 
@@ -171,7 +173,7 @@ export default function MarketplacePage() {
         onClose={closeModal}
         title={modalTitle}
         description={modalMessage}
-        illustration={modalTitle === "Already requested" ? undefined : <StarDoodle className="w-16 h-16" />}
+        illustration={modalTitle === "You already asked" ? undefined : <StarDoodle className="w-16 h-16" />}
       >
         {rewardAdjusted && (
           <Callout loading={loadingSupplyDemand} className="mb-6">
@@ -186,7 +188,7 @@ export default function MarketplacePage() {
       <Modal
         isOpen={!!priceDropModalMission}
         onClose={closePriceDropModal}
-        title="Why is the reward lower?"
+        title="Why does it pay less?"
       >
         <Callout loading={loadingPriceDropExplanation} className="mb-6">
           {priceDropExplanation}

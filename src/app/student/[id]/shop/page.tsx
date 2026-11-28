@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Check, Target } from "lucide-react";
+import { ArrowRight, Check, Sofa, Target } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Coin } from "@/components/ui/Coin";
@@ -45,7 +45,7 @@ export default function RewardShopPage() {
           : {
               success: false,
               title: "Not enough tokens",
-              message: "You don't have enough Spend tokens for this yet. Complete more missions to earn more.",
+              message: "You need more Spend tokens for this. Do more jobs to earn some!",
             },
       );
     }
@@ -55,8 +55,8 @@ export default function RewardShopPage() {
     <div>
       <PageHeader
         eyebrow="Reward shop"
-        title="Treat yourself, thoughtfully"
-        description="Use your Spend tokens on classroom perks. Save and Grow tokens stay put."
+        title="Pick something you really want"
+        description="Use your Spend tokens on class rewards. Your Save and Grow tokens stay where they are."
         action={
           <div className="flex items-center gap-3 bg-surface border border-line rounded-full pl-2 pr-5 py-2">
             <Coin type="spend" size={36} />
@@ -67,6 +67,24 @@ export default function RewardShopPage() {
           </div>
         }
       />
+
+      <Link
+        href={`/student/${studentId}/room`}
+        className="mb-6 flex items-center justify-between gap-4 rounded-card bg-lavender-soft border border-lavender/60 px-5 py-4 hover:brightness-[0.98] transition"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-10 h-10 rounded-full bg-surface border-2 border-ink flex items-center justify-center shrink-0">
+            <Sofa className="w-5 h-5" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
+            <p className="font-medium leading-tight">Looking for room stuff?</p>
+            <p className="text-sm text-ink-soft">Furniture, pets and new rooms are in the shop inside your room.</p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1 text-sm shrink-0">
+          <span className="hidden sm:inline">Go to my room</span> <ArrowRight className="w-4 h-4" />
+        </span>
+      </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {rewards.map((reward) => {
@@ -144,7 +162,7 @@ export default function RewardShopPage() {
                             setModal({
                               success: true,
                               title: "New savings goal",
-                              message: `You're now saving for ${reward.title}. Track it on your Save page.`,
+                              message: `You're saving for ${reward.title} now. Watch your jar fill up on the Save page.`,
                             });
                           }}
                           className="w-full flex items-center justify-center gap-1.5 text-sm text-ink-soft mt-3 hover:text-ink"
